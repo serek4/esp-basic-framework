@@ -137,6 +137,8 @@ bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
 }
 
 void Framework::setup() {
+	EspBasic::_wifi = &wifi;
+	EspBasic::_setup();
 	filesystem.setup(true);
 	frameConfig.addLogger(&BasicLogs::saveLog);
 	frameConfig.setup();
@@ -170,7 +172,6 @@ void Framework::setup() {
 	NTPclient.setup();
 	ota.addLogger(&BasicLogs::saveLog);
 	ota.setup();
-	begin();
 	if (wifi.waitForConnection() == BasicWiFi::wifi_got_ip) {
 		NTPclient.waitForNTP();
 		mqtt.waitForConnection();

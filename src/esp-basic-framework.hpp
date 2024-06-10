@@ -54,7 +54,10 @@ class EspBasic {
 	bool _useLed;
 	u_long _1minTimer;
 
+	BasicWiFi* _wifi;
+
 	uint16_t _avgLoopTime();
+	void _setup();
 	void _loop();
 	// clang-format off
 	int8_t wifiRssi() { return WIFI_RSSI; }
@@ -78,7 +81,6 @@ class EspBasic {
 	uint32_t loopCount;
 	uint32_t avgLoopBuffer;
 
-	void begin();
 	void blinkLed(u_long onTime, u_long offTime, uint8_t repeat = BLINK_ONCE);
 	/**
 	 * put this as last command in main setup()

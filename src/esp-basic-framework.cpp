@@ -11,18 +11,13 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , loopTime(0)
     , avgLoopTime(0)
     , loopCount(0)
-    , avgLoopBuffer(0) {
+    , avgLoopBuffer(0)
+    , _wifi(nullptr) {
 }
 EspBasic::EspBasic()
     : EspBasic::EspBasic(255, LOW, false) {
 }
 
-void EspBasic::begin() {
-	if (_useLed) {
-		pinMode(_ledPin, OUTPUT);
-		digitalWrite(_ledPin, _ledON);
-	}
-}
 void EspBasic::blinkLed(u_long onTime, u_long offTime, uint8_t repeat) {
 	for (int i = 0; i < repeat; i++) {
 		digitalWrite(_ledPin, _ledON);
@@ -58,6 +53,12 @@ void EspBasic::setupDone() {
 	_prevLoopTime = micros();    // save setup end time as first loop start
 }
 
+void EspBasic::_setup() {
+	if (_useLed) {
+		pinMode(_ledPin, OUTPUT);
+		digitalWrite(_ledPin, _ledON);
+	}
+}
 void EspBasic::_loop() {
 	_loopTime();
 }
