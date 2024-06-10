@@ -12,7 +12,8 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , avgLoopTime(0)
     , loopCount(0)
     , avgLoopBuffer(0)
-    , _wifi(nullptr) {
+    , _wifi(nullptr)
+    , _ota(nullptr) {
 }
 EspBasic::EspBasic()
     : EspBasic::EspBasic(255, LOW, false) {
@@ -58,7 +59,14 @@ void EspBasic::_setup() {
 		pinMode(_ledPin, OUTPUT);
 		digitalWrite(_ledPin, _ledON);
 	}
+	if (_wifi != nullptr) {
+		_wifi->onGotIP([&](GOT_IP_HANDLER_ARGS) {
+			if (_ota != nullptr) { _ota->begin(); }
+		});
+	}
+	if (_ota != nullptr) { _ota->setup(); }
 }
 void EspBasic::_loop() {
+	if (_ota != nullptr) { _ota->handle(); }
 	_loopTime();
 }

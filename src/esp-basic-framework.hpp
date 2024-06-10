@@ -55,6 +55,7 @@ class EspBasic {
 	u_long _1minTimer;
 
 	BasicWiFi* _wifi;
+	BasicOTA* _ota;
 
 	uint16_t _avgLoopTime();
 	void _setup();

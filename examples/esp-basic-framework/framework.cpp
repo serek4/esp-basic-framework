@@ -63,7 +63,6 @@ void handleWiFiConnected(CONNECTED_HANDLER_ARGS) {
 }
 void handleWiFiGotIP(GOT_IP_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onGotIP");
-	ota.begin();
 	webServer.begin();
 	mqtt.connect();
 }
@@ -138,6 +137,7 @@ bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
 
 void Framework::setup() {
 	EspBasic::_wifi = &wifi;
+	EspBasic::_ota = &ota;
 	EspBasic::_setup();
 	filesystem.setup(true);
 	frameConfig.addLogger(&BasicLogs::saveLog);
@@ -171,17 +171,15 @@ void Framework::setup() {
 	NTPclient.addLogger(&BasicLogs::saveLog);
 	NTPclient.setup();
 	ota.addLogger(&BasicLogs::saveLog);
-	ota.setup();
 	if (wifi.waitForConnection() == BasicWiFi::wifi_got_ip) {
 		NTPclient.waitForNTP();
 		mqtt.waitForConnection();
 	}
-	EspBasic::setupDone(); //* here or in main setup() end
+	EspBasic::setupDone();    //* here or in main setup() end
 }
 
 void Framework::loop() {
 	NTPclient.handle();
-	ota.handle();
 	logger.handle();
 	EspBasic::_loop();
 	if (millis() - _1minTimer >= ONE_MINUTE) {
@@ -215,7 +213,7 @@ void Framework::publishStats() {
 	doc["minFree"] = heapMinFree();
 #elif defined(ARDUINO_ARCH_ESP8266)
 	doc["stackFree"] = stackFree();
-	#endif
+#endif
 	doc["maxAlloc"] = heapMaxAlloc();
 	serializeJson(doc, heapStats);
 	mqtt.publish((mqtt.topicPrefix + "/heap").c_str(), heapStats);
