@@ -80,8 +80,13 @@ class EspBasic {
 	// clang-format on
 
   public:
+	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
+	         BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config,
+	         uint8_t ledPin, bool ONstate, bool useLed = true);
+	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
+	         BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config);
+	EspBasic(uint8_t ledPin, bool ONstate);
 	EspBasic();
-	EspBasic(uint8_t ledPin, bool ONstate, bool useLed = true);
 
 	uint16_t loopTime;
 	uint16_t avgLoopTime;

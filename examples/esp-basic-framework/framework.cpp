@@ -8,7 +8,7 @@ BasicMqtt mqtt(MQTT_BROKER, MQTT_USER, MQTT_PASS);
 BasicTime NTPclient(NTP_SERVER_ADDRESS, TIMEZONE);
 BasicLogs logger;
 
-Framework frame(LED_PIN, LED_ON);
+Framework frame(&wifi, &ota, &mqtt, &webServer, &NTPclient, &logger, &frameConfig, LED_PIN, LED_ON);
 AccessPoints accessPoints = WIFI_ACCESS_POINTS;
 
 void handleWiFiConnected(CONNECTED_HANDLER_ARGS) {
@@ -49,13 +49,6 @@ bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
 }
 
 void Framework::setup() {
-	EspBasic::_wifi = &wifi;
-	EspBasic::_ota = &ota;
-	EspBasic::_mqtt = &mqtt;
-	EspBasic::_webServer = &webServer;
-	EspBasic::_NTPclient = &NTPclient;
-	EspBasic::_logger = &logger;
-	EspBasic::_config = &frameConfig;
 	EspBasic::_setup();
 	webServer.setup();
 	mqtt.onConnect(handleMqttConnect);

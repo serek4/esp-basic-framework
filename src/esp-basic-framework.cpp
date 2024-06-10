@@ -1,6 +1,7 @@
 #include "esp-basic-framework.hpp"
-
-EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
+EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
+                   BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config,
+                   uint8_t ledPin, bool ONstate, bool useLed)
     : _useLed(useLed)
     , _ledPin(ledPin)
     , _ledON(ONstate)
@@ -12,16 +13,26 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , avgLoopTime(0)
     , loopCount(0)
     , avgLoopBuffer(0)
-    , _wifi(nullptr)
-    , _ota(nullptr)
-    , _mqtt(nullptr)
-    , _webServer(nullptr)
-    , _NTPclient(nullptr)
-    , _logger(nullptr)
-    , _config(nullptr) {
+    , _wifi(wifi)
+    , _ota(ota)
+    , _mqtt(mqtt)
+    , _webServer(webServer)
+    , _NTPclient(NTPclient)
+    , _logger(logger)
+    , _config(config) {
+}
+EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
+                   BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config)
+    : EspBasic::EspBasic(wifi, ota, mqtt, webServer, NTPclient, logger, config,
+                         255, LOW, false) {
+}
+EspBasic::EspBasic(uint8_t ledPin, bool ONstate)
+    : EspBasic::EspBasic(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                         ledPin, ONstate, true) {
 }
 EspBasic::EspBasic()
-    : EspBasic::EspBasic(255, LOW, false) {
+    : EspBasic::EspBasic(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                         255, LOW, false) {
 }
 
 void EspBasic::blinkLed(u_long onTime, u_long offTime, uint8_t repeat) {
