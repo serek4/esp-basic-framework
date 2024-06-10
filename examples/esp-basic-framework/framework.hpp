@@ -30,7 +30,6 @@ class Framework : public EspBasic {
   public:
 	using EspBasic::EspBasic;
 
-	void publishStats();
 	void setup();
 	void loop();
 };

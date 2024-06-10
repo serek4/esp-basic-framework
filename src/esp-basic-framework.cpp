@@ -13,7 +13,8 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , loopCount(0)
     , avgLoopBuffer(0)
     , _wifi(nullptr)
-    , _ota(nullptr) {
+    , _ota(nullptr)
+    , _mqtt(nullptr) {
 }
 EspBasic::EspBasic()
     : EspBasic::EspBasic(255, LOW, false) {
@@ -59,9 +60,30 @@ void EspBasic::_setup() {
 		pinMode(_ledPin, OUTPUT);
 		digitalWrite(_ledPin, _ledON);
 	}
+	if (_mqtt != nullptr) {
+		_mqtt->onConnect([&](bool sessionPresent) {
+			_publishStats();
+		});
+		_mqtt->commands([&](BasicMqtt::Command mqttCommand) {
+			if (mqttCommand[0] == "wifi") {
+				if (mqttCommand.size() > 1) {
+					if (mqttCommand[1] == "reconnect") {
+						Serial.println("reconnecting wifi");
+						_wifi->reconnect();
+						return true;
+					}
+				}
+			}
+			return false;
+		});
+	}
 	if (_wifi != nullptr) {
 		_wifi->onGotIP([&](GOT_IP_HANDLER_ARGS) {
 			if (_ota != nullptr) { _ota->begin(); }
+			if (_mqtt != nullptr) { _mqtt->connect(); }
+		});
+		_wifi->onDisconnected([&](DISCONNECTED_HANDLER_ARGS) {
+			if (_mqtt != nullptr) { _mqtt->disconnect(); }
 		});
 	}
 	if (_ota != nullptr) { _ota->setup(); }
@@ -69,4 +91,35 @@ void EspBasic::_setup() {
 void EspBasic::_loop() {
 	if (_ota != nullptr) { _ota->handle(); }
 	_loopTime();
+}
+
+void EspBasic::_publishStats() {
+	if (_mqtt != nullptr) {
+		_mqtt->publish((_mqtt->topicPrefix + "/rssi").c_str(), wifiRssi());
+		_mqtt->publish((_mqtt->topicPrefix + "/cpu_freq").c_str(), cpuFrequency());
+#ifdef ARDUINO_ARCH_ESP32
+		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), internalTemperature());
+#endif
+		JsonDocument doc;
+		String loopStats;
+		if (loopTime > 0) {
+			doc["time"] = loopTime;
+			doc["avgTime"] = avgLoopTime;
+			doc["count"] = loopCount;
+			doc["buffer"] = avgLoopBuffer;
+			serializeJson(doc, loopStats);
+			_mqtt->publish((_mqtt->topicPrefix + "/loop").c_str(), loopStats);
+			doc.clear();
+		}
+		String heapStats;
+		doc["free"] = heapFree();
+#ifdef ARDUINO_ARCH_ESP32
+		doc["minFree"] = heapMinFree();
+#elif defined(ARDUINO_ARCH_ESP8266)
+		doc["stackFree"] = stackFree();
+#endif
+		doc["maxAlloc"] = heapMaxAlloc();
+		serializeJson(doc, heapStats);
+		_mqtt->publish((_mqtt->topicPrefix + "/heap").c_str(), heapStats);
+	}
 }

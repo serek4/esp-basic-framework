@@ -56,10 +56,12 @@ class EspBasic {
 
 	BasicWiFi* _wifi;
 	BasicOTA* _ota;
+	BasicMqtt* _mqtt;
 
 	uint16_t _avgLoopTime();
 	void _setup();
 	void _loop();
+	void _publishStats();
 	// clang-format off
 	int8_t wifiRssi() { return WIFI_RSSI; }
 	uint32_t cpuFrequency() { return CPU_FREQUENCY; }

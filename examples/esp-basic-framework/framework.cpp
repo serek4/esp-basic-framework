@@ -64,11 +64,9 @@ void handleWiFiConnected(CONNECTED_HANDLER_ARGS) {
 void handleWiFiGotIP(GOT_IP_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onGotIP");
 	webServer.begin();
-	mqtt.connect();
 }
 void handleWiFiDisconnected(DISCONNECTED_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onDisconnected");
-	mqtt.disconnect();
 }
 
 void blink(u_long onTime, u_long offTime) {
@@ -96,7 +94,6 @@ void httpSyncTime(AsyncWebServerRequest* request) {
 
 void handleMqttConnect(bool sessionPresent) {
 	Serial.println("User handler for MQTT onConnect");
-	frame.publishStats();
 }
 void handleMqttPublish(PacketID packetId) {
 	Serial.printf("Packet: %i successfully published\n", packetId);
@@ -109,15 +106,6 @@ void handleIncMqttMsg(const char* topic, const char* payload) {
 	mqtt.publish((mqtt.topicPrefix + "/feedback").c_str(), payload);
 }
 bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
-	if (mqttCommand[0] == "wifi") {
-		if (mqttCommand.size() > 1) {
-			if (mqttCommand[1] == "reconnect") {
-				Serial.println("reconnecting wifi");
-				wifi.reconnect();
-				return true;
-			}
-		}
-	}
 	if (mqttCommand[0] == "config") {
 		if (mqttCommand.size() > 1) {
 			if (mqttCommand[1] == "save") {    // to file
@@ -138,6 +126,7 @@ bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
 void Framework::setup() {
 	EspBasic::_wifi = &wifi;
 	EspBasic::_ota = &ota;
+	EspBasic::_mqtt = &mqtt;
 	EspBasic::_setup();
 	filesystem.setup(true);
 	frameConfig.addLogger(&BasicLogs::saveLog);
@@ -186,35 +175,6 @@ void Framework::loop() {
 		_1minTimer = millis();
 		now();
 		EspBasic::_avgLoopTime();
-		publishStats();
+		EspBasic::_publishStats();
 	}
-}
-
-void Framework::publishStats() {
-	mqtt.publish((mqtt.topicPrefix + "/rssi").c_str(), wifiRssi());
-	mqtt.publish((mqtt.topicPrefix + "/cpu_freq").c_str(), cpuFrequency());
-#ifdef ARDUINO_ARCH_ESP32
-	mqtt.publish((mqtt.topicPrefix + "/temperature").c_str(), internalTemperature());
-#endif
-	JsonDocument doc;
-	String loopStats;
-	if (loopTime > 0) {
-		doc["time"] = loopTime;
-		doc["avgTime"] = avgLoopTime;
-		doc["count"] = loopCount;
-		doc["buffer"] = avgLoopBuffer;
-		serializeJson(doc, loopStats);
-		mqtt.publish((mqtt.topicPrefix + "/loop").c_str(), loopStats);
-		doc.clear();
-	}
-	String heapStats;
-	doc["free"] = heapFree();
-#ifdef ARDUINO_ARCH_ESP32
-	doc["minFree"] = heapMinFree();
-#elif defined(ARDUINO_ARCH_ESP8266)
-	doc["stackFree"] = stackFree();
-#endif
-	doc["maxAlloc"] = heapMaxAlloc();
-	serializeJson(doc, heapStats);
-	mqtt.publish((mqtt.topicPrefix + "/heap").c_str(), heapStats);
 }
