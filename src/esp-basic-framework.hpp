@@ -54,8 +54,18 @@ class EspBasic {
 	bool _useLed;
 	u_long _1minTimer;
 
+	BasicWiFi* _wifi;
+	BasicOTA* _ota;
+	BasicMqtt* _mqtt;
+	BasicWebServer* _webServer;
+	BasicTime* _NTPclient;
+	BasicLogs* _logger;
+	BasicConfig* _config;
+
 	uint16_t _avgLoopTime();
+	void _setup();
 	void _loop();
+	void _publishStats();
 	// clang-format off
 	int8_t wifiRssi() { return WIFI_RSSI; }
 	uint32_t cpuFrequency() { return CPU_FREQUENCY; }
@@ -70,15 +80,19 @@ class EspBasic {
 	// clang-format on
 
   public:
+	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
+	         BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config,
+	         uint8_t ledPin, bool ONstate, bool useLed = true);
+	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
+	         BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config);
+	EspBasic(uint8_t ledPin, bool ONstate);
 	EspBasic();
-	EspBasic(uint8_t ledPin, bool ONstate, bool useLed = true);
 
 	uint16_t loopTime;
 	uint16_t avgLoopTime;
 	uint32_t loopCount;
 	uint32_t avgLoopBuffer;
 
-	void begin();
 	void blinkLed(u_long onTime, u_long offTime, uint8_t repeat = BLINK_ONCE);
 	/**
 	 * put this as last command in main setup()
