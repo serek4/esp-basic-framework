@@ -15,7 +15,8 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , _wifi(nullptr)
     , _ota(nullptr)
     , _mqtt(nullptr)
-    , _webServer(nullptr) {
+    , _webServer(nullptr)
+    , _NTPclient(nullptr) {
 }
 EspBasic::EspBasic()
     : EspBasic::EspBasic(255, LOW, false) {
@@ -73,6 +74,11 @@ void EspBasic::_setup() {
 			request->send(response);
 			_mqtt->reconnect();
 		});
+		_webServer->addHttpHandler("/syncTime", [&](AsyncWebServerRequest* request) {
+			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
+			request->send(response);
+			BasicTime::requestNtpTime();
+		});
 	}
 	if (_mqtt != nullptr) {
 		_mqtt->onConnect([&](bool sessionPresent) {
@@ -102,8 +108,10 @@ void EspBasic::_setup() {
 		});
 	}
 	if (_ota != nullptr) { _ota->setup(); }
+	if (_NTPclient != nullptr) { _NTPclient->setup(); }
 }
 void EspBasic::_loop() {
+	if (_NTPclient != nullptr) { _NTPclient->handle(); }
 	if (_ota != nullptr) { _ota->handle(); }
 	_loopTime();
 }

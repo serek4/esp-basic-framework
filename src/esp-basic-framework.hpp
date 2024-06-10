@@ -58,6 +58,7 @@ class EspBasic {
 	BasicOTA* _ota;
 	BasicMqtt* _mqtt;
 	BasicWebServer* _webServer;
+	BasicTime* _NTPclient;
 
 	uint16_t _avgLoopTime();
 	void _setup();

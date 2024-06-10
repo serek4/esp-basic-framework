@@ -72,13 +72,6 @@ void blink(u_long onTime, u_long offTime) {
 	frame.blinkLed(onTime, offTime);
 }
 
-void httpSyncTime(AsyncWebServerRequest* request) {
-	BasicLogs::saveLog(now(), BasicLogs::_info_, "manual NTP sync");
-	AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
-	request->send(response);
-	BasicTime::requestNtpTime();
-}
-
 void handleMqttConnect(bool sessionPresent) {
 	Serial.println("User handler for MQTT onConnect");
 }
@@ -115,6 +108,7 @@ void Framework::setup() {
 	EspBasic::_ota = &ota;
 	EspBasic::_mqtt = &mqtt;
 	EspBasic::_webServer = &webServer;
+	EspBasic::_NTPclient = &NTPclient;
 	EspBasic::_setup();
 	frameConfig.addLogger(&BasicLogs::saveLog);
 	frameConfig.setup();
@@ -125,7 +119,6 @@ void Framework::setup() {
 	frameConfig.deserialize(deserializeWebServerConfig);
 	frameConfig.deserialize(deserializeMqttConfig);
 	frameConfig.load();
-	webServer.addHttpHandler("/syncTime", httpSyncTime);
 	webServer.setup();
 	mqtt.addLogger(&BasicLogs::saveLog);
 	mqtt.onConnect(handleMqttConnect);
@@ -143,7 +136,6 @@ void Framework::setup() {
 	wifi.setWaitingFunction(blink);
 	wifi.setup();
 	NTPclient.addLogger(&BasicLogs::saveLog);
-	NTPclient.setup();
 	ota.addLogger(&BasicLogs::saveLog);
 	if (wifi.waitForConnection() == BasicWiFi::wifi_got_ip) {
 		NTPclient.waitForNTP();
@@ -153,7 +145,6 @@ void Framework::setup() {
 }
 
 void Framework::loop() {
-	NTPclient.handle();
 	logger.handle();
 	EspBasic::_loop();
 	if (millis() - _1minTimer >= ONE_MINUTE) {
