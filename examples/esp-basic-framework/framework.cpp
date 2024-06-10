@@ -109,6 +109,7 @@ void Framework::setup() {
 	EspBasic::_mqtt = &mqtt;
 	EspBasic::_webServer = &webServer;
 	EspBasic::_NTPclient = &NTPclient;
+	EspBasic::_logger = &logger;
 	EspBasic::_setup();
 	frameConfig.addLogger(&BasicLogs::saveLog);
 	frameConfig.setup();
@@ -120,7 +121,6 @@ void Framework::setup() {
 	frameConfig.deserialize(deserializeMqttConfig);
 	frameConfig.load();
 	webServer.setup();
-	mqtt.addLogger(&BasicLogs::saveLog);
 	mqtt.onConnect(handleMqttConnect);
 	mqtt.onPublish(handleMqttPublish);
 	mqtt.onDisconnect(handleMqttDisconnect);
@@ -129,14 +129,11 @@ void Framework::setup() {
 	mqtt.setWaitingFunction(blink);
 	mqtt.setup();
 	wifi.setAccessPoints(accessPoints);
-	wifi.addLogger(&BasicLogs::saveLog);
 	wifi.onConnected(handleWiFiConnected);
 	wifi.onGotIP(handleWiFiGotIP);
 	wifi.onDisconnected(handleWiFiDisconnected);
 	wifi.setWaitingFunction(blink);
 	wifi.setup();
-	NTPclient.addLogger(&BasicLogs::saveLog);
-	ota.addLogger(&BasicLogs::saveLog);
 	if (wifi.waitForConnection() == BasicWiFi::wifi_got_ip) {
 		NTPclient.waitForNTP();
 		mqtt.waitForConnection();
@@ -145,12 +142,5 @@ void Framework::setup() {
 }
 
 void Framework::loop() {
-	logger.handle();
 	EspBasic::_loop();
-	if (millis() - _1minTimer >= ONE_MINUTE) {
-		_1minTimer = millis();
-		now();
-		EspBasic::_avgLoopTime();
-		EspBasic::_publishStats();
-	}
 }

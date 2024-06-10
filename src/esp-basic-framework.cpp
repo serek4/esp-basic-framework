@@ -16,7 +16,8 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , _ota(nullptr)
     , _mqtt(nullptr)
     , _webServer(nullptr)
-    , _NTPclient(nullptr) {
+    , _NTPclient(nullptr)
+    , _logger(nullptr) {
 }
 EspBasic::EspBasic()
     : EspBasic::EspBasic(255, LOW, false) {
@@ -65,22 +66,26 @@ void EspBasic::_setup() {
 	filesystem.setup(true);
 	if (_webServer != nullptr) {
 		_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
+			BasicLogs::saveLog(now(), BasicLogs::_info_, "manual WiFi reconnect");
 			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
 			request->send(response);
 			_wifi->reconnect();
 		});
 		_webServer->addHttpHandler("/reconnectMqtt", [&](AsyncWebServerRequest* request) {
+			BasicLogs::saveLog(now(), BasicLogs::_info_, "manual MQTT reconnect");
 			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
 			request->send(response);
 			_mqtt->reconnect();
 		});
 		_webServer->addHttpHandler("/syncTime", [&](AsyncWebServerRequest* request) {
+			BasicLogs::saveLog(now(), BasicLogs::_info_, "manual NTP sync");
 			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
 			request->send(response);
 			BasicTime::requestNtpTime();
 		});
 	}
 	if (_mqtt != nullptr) {
+		if (_logger != nullptr) { _mqtt->addLogger(&BasicLogs::saveLog); }
 		_mqtt->onConnect([&](bool sessionPresent) {
 			_publishStats();
 		});
@@ -98,6 +103,7 @@ void EspBasic::_setup() {
 		});
 	}
 	if (_wifi != nullptr) {
+		if (_logger != nullptr) { _wifi->addLogger(&BasicLogs::saveLog); }
 		_wifi->onGotIP([&](GOT_IP_HANDLER_ARGS) {
 			if (_ota != nullptr) { _ota->begin(); }
 			if (_mqtt != nullptr) { _mqtt->connect(); }
@@ -107,13 +113,26 @@ void EspBasic::_setup() {
 			if (_mqtt != nullptr) { _mqtt->disconnect(); }
 		});
 	}
-	if (_ota != nullptr) { _ota->setup(); }
-	if (_NTPclient != nullptr) { _NTPclient->setup(); }
+	if (_ota != nullptr) {
+		if (_logger != nullptr) { _ota->addLogger(&BasicLogs::saveLog); }
+		_ota->setup();
+	}
+	if (_NTPclient != nullptr) {
+		if (_logger != nullptr) { _NTPclient->addLogger(&BasicLogs::saveLog); }
+		_NTPclient->setup();
+	}
 }
 void EspBasic::_loop() {
 	if (_NTPclient != nullptr) { _NTPclient->handle(); }
 	if (_ota != nullptr) { _ota->handle(); }
 	_loopTime();
+	if (millis() - _1minTimer >= ONE_MINUTE) {
+		_1minTimer = millis();
+		now();
+		_avgLoopTime();
+		_publishStats();
+	}
+	if (_logger != nullptr) { _logger->handle(); }
 }
 
 void EspBasic::_publishStats() {

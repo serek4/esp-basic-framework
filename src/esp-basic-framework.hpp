@@ -59,6 +59,7 @@ class EspBasic {
 	BasicMqtt* _mqtt;
 	BasicWebServer* _webServer;
 	BasicTime* _NTPclient;
+	BasicLogs* _logger;
 
 	uint16_t _avgLoopTime();
 	void _setup();
