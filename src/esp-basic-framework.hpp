@@ -60,6 +60,7 @@ class EspBasic {
 	BasicWebServer* _webServer;
 	BasicTime* _NTPclient;
 	BasicLogs* _logger;
+	BasicConfig* _config;
 
 	uint16_t _avgLoopTime();
 	void _setup();

@@ -11,53 +11,6 @@ BasicLogs logger;
 Framework frame(LED_PIN, LED_ON);
 AccessPoints accessPoints = WIFI_ACCESS_POINTS;
 
-void serializeWifiConfig(JsonObject doc) {
-	BasicWiFi::Config wifiConfig = wifi.getConfig();
-	doc["wifi"]["ssid"] = wifiConfig.ssid;
-	doc["wifi"]["pass"] = wifiConfig.pass;
-}
-void serializeWebServerConfig(JsonObject doc) {
-	BasicWebServer::Config webServerConfig = webServer.getConfig();
-	JsonObject http = doc["http"].to<JsonObject>();
-	http["user"] = webServerConfig.user;
-	http["pass"] = webServerConfig.pass;
-}
-void serializeMqttConfig(JsonObject doc) {
-	BasicMqtt::Config mqttConfig = mqtt.getConfig();
-	JsonObject _mqtt = doc["mqtt"].to<JsonObject>();
-	_mqtt["broker"] = mqttConfig.broker_address;
-	_mqtt["user"] = mqttConfig.user;
-	_mqtt["pass"] = mqttConfig.pass;
-}
-
-void deserializeWiFiConfig(JsonObject doc) {
-	BasicWiFi::Config wifiConfig;
-	wifi.getConfig(wifiConfig);
-	wifiConfig.ssid = doc["wifi"]["ssid"].as<String>();
-	wifiConfig.pass = doc["wifi"]["pass"].as<String>();
-	wifi.setConfig(wifiConfig);
-}
-void deserializeWebServerConfig(JsonObject doc) {
-	BasicWebServer::Config webServerConfig;
-	webServer.getConfig(webServerConfig);
-	JsonObject http = doc["http"];
-	if (!http.isNull()) {
-		webServerConfig.user = http["user"].as<String>();
-		webServerConfig.pass = http["pass"].as<String>();
-	}
-	webServer.setConfig(webServerConfig);
-}
-void deserializeMqttConfig(JsonObject doc) {
-	BasicMqtt::Config mqttConfig = mqtt.getConfig();
-	JsonObject _mqtt = doc["mqtt"];
-	if (!_mqtt.isNull()) {
-		mqttConfig.broker_address = _mqtt["broker"].as<std::string>();
-		mqttConfig.user = _mqtt["user"].as<std::string>();
-		mqttConfig.pass = _mqtt["pass"].as<std::string>();
-	}
-	mqtt.setConfig(mqttConfig);
-}
-
 void handleWiFiConnected(CONNECTED_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onConnected");
 }
@@ -86,21 +39,13 @@ void handleIncMqttMsg(const char* topic, const char* payload) {
 	mqtt.publish((mqtt.topicPrefix + "/feedback").c_str(), payload);
 }
 bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
-	if (mqttCommand[0] == "config") {
-		if (mqttCommand.size() > 1) {
-			if (mqttCommand[1] == "save") {    // to file
-				Serial.println("saving config");
-				frameConfig.save();
-				return true;
-			}
-			if (mqttCommand[1] == "load") {    // from file
-				Serial.println("loading config");
-				frameConfig.load();
-				return true;
-			}
-		}
+	std::string command = "";
+	for (const auto& element : mqttCommand) {
+		command += element;
+		command += " ";
 	}
-	return false;
+	command.pop_back();
+	Serial.printf("Incoming mqtt command: %s\n", command.c_str());
 }
 
 void Framework::setup() {
@@ -110,16 +55,8 @@ void Framework::setup() {
 	EspBasic::_webServer = &webServer;
 	EspBasic::_NTPclient = &NTPclient;
 	EspBasic::_logger = &logger;
+	EspBasic::_config = &frameConfig;
 	EspBasic::_setup();
-	frameConfig.addLogger(&BasicLogs::saveLog);
-	frameConfig.setup();
-	frameConfig.serialize(serializeWifiConfig);
-	frameConfig.serialize(serializeWebServerConfig);
-	frameConfig.serialize(serializeMqttConfig);
-	frameConfig.deserialize(deserializeWiFiConfig);
-	frameConfig.deserialize(deserializeWebServerConfig);
-	frameConfig.deserialize(deserializeMqttConfig);
-	frameConfig.load();
 	webServer.setup();
 	mqtt.onConnect(handleMqttConnect);
 	mqtt.onPublish(handleMqttPublish);
