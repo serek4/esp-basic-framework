@@ -14,7 +14,8 @@ EspBasic::EspBasic(uint8_t ledPin, bool ONstate, bool useLed)
     , avgLoopBuffer(0)
     , _wifi(nullptr)
     , _ota(nullptr)
-    , _mqtt(nullptr) {
+    , _mqtt(nullptr)
+    , _webServer(nullptr) {
 }
 EspBasic::EspBasic()
     : EspBasic::EspBasic(255, LOW, false) {
@@ -60,6 +61,19 @@ void EspBasic::_setup() {
 		pinMode(_ledPin, OUTPUT);
 		digitalWrite(_ledPin, _ledON);
 	}
+	filesystem.setup(true);
+	if (_webServer != nullptr) {
+		_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
+			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
+			request->send(response);
+			_wifi->reconnect();
+		});
+		_webServer->addHttpHandler("/reconnectMqtt", [&](AsyncWebServerRequest* request) {
+			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
+			request->send(response);
+			_mqtt->reconnect();
+		});
+	}
 	if (_mqtt != nullptr) {
 		_mqtt->onConnect([&](bool sessionPresent) {
 			_publishStats();
@@ -81,6 +95,7 @@ void EspBasic::_setup() {
 		_wifi->onGotIP([&](GOT_IP_HANDLER_ARGS) {
 			if (_ota != nullptr) { _ota->begin(); }
 			if (_mqtt != nullptr) { _mqtt->connect(); }
+			if (_webServer != nullptr) { _webServer->begin(); }
 		});
 		_wifi->onDisconnected([&](DISCONNECTED_HANDLER_ARGS) {
 			if (_mqtt != nullptr) { _mqtt->disconnect(); }

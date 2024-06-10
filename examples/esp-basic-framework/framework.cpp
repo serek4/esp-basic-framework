@@ -63,7 +63,6 @@ void handleWiFiConnected(CONNECTED_HANDLER_ARGS) {
 }
 void handleWiFiGotIP(GOT_IP_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onGotIP");
-	webServer.begin();
 }
 void handleWiFiDisconnected(DISCONNECTED_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onDisconnected");
@@ -73,18 +72,6 @@ void blink(u_long onTime, u_long offTime) {
 	frame.blinkLed(onTime, offTime);
 }
 
-void httpReconnectWiFi(AsyncWebServerRequest* request) {
-	BasicLogs::saveLog(now(), BasicLogs::_info_, "manual WiFi reconnect");
-	AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
-	request->send(response);
-	wifi.reconnect();
-}
-void httpReconnectMqtt(AsyncWebServerRequest* request) {
-	BasicLogs::saveLog(now(), BasicLogs::_info_, "manual MQTT reconnect");
-	AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
-	request->send(response);
-	mqtt.reconnect();
-}
 void httpSyncTime(AsyncWebServerRequest* request) {
 	BasicLogs::saveLog(now(), BasicLogs::_info_, "manual NTP sync");
 	AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
@@ -127,8 +114,8 @@ void Framework::setup() {
 	EspBasic::_wifi = &wifi;
 	EspBasic::_ota = &ota;
 	EspBasic::_mqtt = &mqtt;
+	EspBasic::_webServer = &webServer;
 	EspBasic::_setup();
-	filesystem.setup(true);
 	frameConfig.addLogger(&BasicLogs::saveLog);
 	frameConfig.setup();
 	frameConfig.serialize(serializeWifiConfig);
@@ -138,8 +125,6 @@ void Framework::setup() {
 	frameConfig.deserialize(deserializeWebServerConfig);
 	frameConfig.deserialize(deserializeMqttConfig);
 	frameConfig.load();
-	webServer.addHttpHandler("/reconnectWiFi", httpReconnectWiFi);
-	webServer.addHttpHandler("/reconnectMqtt", httpReconnectMqtt);
 	webServer.addHttpHandler("/syncTime", httpSyncTime);
 	webServer.setup();
 	mqtt.addLogger(&BasicLogs::saveLog);
