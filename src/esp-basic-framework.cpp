@@ -215,10 +215,10 @@ void EspBasic::_loop() {
 
 void EspBasic::_publishStats() {
 	if (_mqtt != nullptr) {
-		_mqtt->publish((_mqtt->topicPrefix + "/rssi").c_str(), wifiRssi());
-		_mqtt->publish((_mqtt->topicPrefix + "/cpu_freq").c_str(), cpuFrequency());
+		_mqtt->publish((_mqtt->topicPrefix + "/rssi").c_str(), _wifiRssi());
+		_mqtt->publish((_mqtt->topicPrefix + "/cpu_freq").c_str(), _cpuFrequency());
 #ifdef ARDUINO_ARCH_ESP32
-		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), internalTemperature());
+		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), _internalTemperature());
 #endif
 		JsonDocument doc;
 		String loopStats;
@@ -232,13 +232,13 @@ void EspBasic::_publishStats() {
 			doc.clear();
 		}
 		String heapStats;
-		doc["free"] = heapFree();
+		doc["free"] = _heapFree();
 #ifdef ARDUINO_ARCH_ESP32
-		doc["minFree"] = heapMinFree();
+		doc["minFree"] = _heapMinFree();
 #elif defined(ARDUINO_ARCH_ESP8266)
-		doc["stackFree"] = stackFree();
+		doc["stackFree"] = _stackFree();
 #endif
-		doc["maxAlloc"] = heapMaxAlloc();
+		doc["maxAlloc"] = _heapMaxAlloc();
 		serializeJson(doc, heapStats);
 		_mqtt->publish((_mqtt->topicPrefix + "/heap").c_str(), heapStats);
 	}

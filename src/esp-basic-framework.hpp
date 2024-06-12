@@ -42,17 +42,13 @@
 
 class EspBasic {
   private:
-	u_long _prevLoopTime;
-	uint32_t _loopCount;
-	uint32_t _avgLoopBuffer;
-
-	uint16_t _loopTime();
-
-  protected:
 	uint8_t _ledPin;
 	bool _ledON;
 	bool _useLed;
 	u_long _1minTimer;
+	u_long _prevLoopTime;
+	uint32_t _loopCount;
+	uint32_t _avgLoopBuffer;
 
 	BasicWiFi* _wifi;
 	BasicOTA* _ota;
@@ -62,22 +58,25 @@ class EspBasic {
 	BasicLogs* _logger;
 	BasicConfig* _config;
 
+	uint16_t _loopTime();
 	uint16_t _avgLoopTime();
-	void _setup();
-	void _loop();
 	void _publishStats();
 	// clang-format off
-	int8_t wifiRssi() { return WIFI_RSSI; }
-	uint32_t cpuFrequency() { return CPU_FREQUENCY; }
+	int8_t _wifiRssi() { return WIFI_RSSI; }
+	uint32_t _cpuFrequency() { return CPU_FREQUENCY; }
 #ifdef ARDUINO_ARCH_ESP32
-	float internalTemperature() { return temperatureRead(); }
-	uint32_t heapMinFree() { return HEAP_MIN_FREE; }
+	float _internalTemperature() { return temperatureRead(); }
+	uint32_t _heapMinFree() { return HEAP_MIN_FREE; }
 #elif defined(ARDUINO_ARCH_ESP8266)
-	uint32_t stackFree() { return STACK_FREE; }
+	uint32_t _stackFree() { return STACK_FREE; }
 #endif
-	uint32_t heapFree() { return HEAP_FREE; }
-	uint32_t heapMaxAlloc() { return HEAP_MAX_ALLOC; }
+	uint32_t _heapFree() { return HEAP_FREE; }
+	uint32_t _heapMaxAlloc() { return HEAP_MAX_ALLOC; }
 	// clang-format on
+
+  protected:
+	void _setup();
+	void _loop();
 
   public:
 	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
@@ -92,10 +91,8 @@ class EspBasic {
 	uint16_t avgLoopTime;
 	uint32_t loopCount;
 	uint32_t avgLoopBuffer;
-
+	// basically delay() with blinking led
 	void blinkLed(u_long onTime, u_long offTime, uint8_t repeat = BLINK_ONCE);
-	/**
-	 * put this as last command in main setup()
-	*/
+	// put this as last command in main setup()
 	void setupDone();
 };
