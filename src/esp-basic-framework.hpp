@@ -27,6 +27,7 @@
 // clang-format on
 
 #define BLINK_ONCE 1
+#define REBOOT_DELAY 100
 #define ONE_MINUTE 60000
 #define HEAP_FREE ESP.getFreeHeap()
 #define WIFI_RSSI WiFi.RSSI()
@@ -45,6 +46,7 @@ class EspBasic {
 	uint8_t _ledPin;
 	bool _ledON;
 	bool _useLed;
+	uint8_t _reboot;
 	u_long _1minTimer;
 	u_long _prevLoopTime;
 	uint32_t _loopCount;
@@ -58,6 +60,7 @@ class EspBasic {
 	BasicLogs* _logger;
 	BasicConfig* _config;
 
+	void _shutdown();
 	uint16_t _loopTime();
 	uint16_t _avgLoopTime();
 	void _publishStats();
@@ -79,6 +82,13 @@ class EspBasic {
 	void _loop();
 
   public:
+	enum RebootState {
+		rbt_idle,
+		rbt_requested,
+		rbt_pending,
+		rbt_forced
+	};
+	
 	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
 	         BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config,
 	         uint8_t ledPin, bool ONstate, bool useLed = true);
