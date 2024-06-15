@@ -46,6 +46,7 @@ bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
 	}
 	command.pop_back();
 	Serial.printf("Incoming mqtt command: %s\n", command.c_str());
+	return true;
 }
 
 void Framework::setup() {
