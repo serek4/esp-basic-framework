@@ -5,6 +5,7 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     : _useLed(useLed)
     , _ledPin(ledPin)
     , _ledON(ONstate)
+    , _reboot(rbt_idle)
     , _1minTimer(0)
     , _prevLoopTime(0)
     , _loopCount(0)
@@ -42,6 +43,14 @@ void EspBasic::blinkLed(u_long onTime, u_long offTime, uint8_t repeat) {
 		digitalWrite(_ledPin, !_ledON);
 		delay(offTime);
 	}
+}
+
+void EspBasic::_shutdown() {
+	_mqtt->disconnect();
+	while (_mqtt->connected()) { delay(1); }
+	_wifi->disconnect();
+	while (WiFi.isConnected()) { delay(1); }
+	if (_logger != nullptr) { _logger->saveLog(BasicLogs::_info_, "restart"); }
 }
 
 uint16_t EspBasic::_loopTime() {
@@ -129,20 +138,32 @@ void EspBasic::_setup() {
 		_config->load();
 	}
 	if (_webServer != nullptr) {
+		_webServer->addHttpHandler("/restart", [&](AsyncWebServerRequest* request) {
+			if (_logger != nullptr) { _logger->saveLog("http", "restart requested"); }
+			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "restart command sent");
+			request->send(response);
+			_reboot = rbt_forced;
+		});
+		_webServer->addHttpHandler("/reboot", [&](AsyncWebServerRequest* request) {
+			if (_logger != nullptr) { _logger->saveLog("http", "reboot requested"); }
+			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reboot command sent");
+			request->send(response);
+			_reboot = rbt_requested;
+		});
 		_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
-			BasicLogs::saveLog(now(), BasicLogs::_info_, "manual WiFi reconnect");
+			if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
 			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
 			request->send(response);
 			_wifi->reconnect();
 		});
 		_webServer->addHttpHandler("/reconnectMqtt", [&](AsyncWebServerRequest* request) {
-			BasicLogs::saveLog(now(), BasicLogs::_info_, "manual MQTT reconnect");
+			if (_logger != nullptr) { _logger->saveLog("http", "MQTT reconnect requested"); }
 			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
 			request->send(response);
 			_mqtt->reconnect();
 		});
 		_webServer->addHttpHandler("/syncTime", [&](AsyncWebServerRequest* request) {
-			BasicLogs::saveLog(now(), BasicLogs::_info_, "manual NTP sync");
+			if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
 			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
 			request->send(response);
 			BasicTime::requestNtpTime();
@@ -154,10 +175,20 @@ void EspBasic::_setup() {
 			_publishStats();
 		});
 		_mqtt->commands([&](BasicMqtt::Command mqttCommand) {
+			if (mqttCommand[0] == "restart" && mqttCommand.size() == 1) {
+				if (_logger != nullptr) { _logger->saveLog("mqtt", "restart requested"); }
+				_reboot = rbt_forced;
+				return true;
+			}
+			if (mqttCommand[0] == "reboot" && mqttCommand.size() == 1) {
+				if (_logger != nullptr) { _logger->saveLog("mqtt", "reboot requested"); }
+				_reboot = rbt_requested;
+				return true;
+			}
 			if (mqttCommand[0] == "wifi") {
 				if (mqttCommand.size() > 1) {
 					if (mqttCommand[1] == "reconnect") {
-						Serial.println("reconnecting wifi");
+						if (_logger != nullptr) { _logger->saveLog("mqtt", "WiFi reconnect requested"); }
 						_wifi->reconnect();
 						return true;
 					}
@@ -166,12 +197,12 @@ void EspBasic::_setup() {
 			if (mqttCommand[0] == "config") {
 				if (mqttCommand.size() > 1) {
 					if (mqttCommand[1] == "save") {    // to file
-						Serial.println("saving config");
+						if (_logger != nullptr) { _logger->saveLog("mqtt", "saving config"); }
 						_config->save();
 						return true;
 					}
 					if (mqttCommand[1] == "load") {    // from file
-						Serial.println("loading config");
+						if (_logger != nullptr) { _logger->saveLog("mqtt", "loading config"); }
 						_config->load();
 						return true;
 					}
@@ -211,6 +242,17 @@ void EspBasic::_loop() {
 		_publishStats();
 	}
 	if (_logger != nullptr) { _logger->handle(); }
+	if (_reboot != rbt_idle) {
+		if (_reboot == rbt_requested) {
+			_shutdown();
+			_reboot = rbt_pending;
+		}
+		static u_long rebootTimer = millis();
+		if (millis() - rebootTimer > REBOOT_DELAY || _reboot == rbt_forced) {
+			rebootTimer = millis();
+			ESP.restart();
+		}
+	}
 }
 
 void EspBasic::_publishStats() {
