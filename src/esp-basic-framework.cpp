@@ -86,13 +86,15 @@ void EspBasic::_setup() {
 		});
 		_config->serialize([&](JsonObject doc) {
 			BasicWebServer::Config webServerConfig = _webServer->getConfig();
-			JsonObject http = doc["http"].to<JsonObject>();
+			JsonObject http = doc["http"].as<JsonObject>();
+			if (http.isNull()) { http = doc["http"].to<JsonObject>(); }
 			http["user"] = webServerConfig.user;
 			http["pass"] = webServerConfig.pass;
 		});
 		_config->serialize([&](JsonObject doc) {
 			BasicMqtt::Config mqttConfig = _mqtt->getConfig();
-			JsonObject mqtt = doc["mqtt"].to<JsonObject>();
+			JsonObject mqtt = doc["mqtt"].as<JsonObject>();
+			if (mqtt.isNull()) { mqtt = doc["mqtt"].to<JsonObject>(); }
 			mqtt["broker"] = mqttConfig.broker_address;
 			mqtt["user"] = mqttConfig.user;
 			mqtt["pass"] = mqttConfig.pass;
@@ -100,27 +102,27 @@ void EspBasic::_setup() {
 		_config->deserialize([&](JsonObject doc) {
 			BasicWiFi::Config wifiConfig;
 			_wifi->getConfig(wifiConfig);
-			wifiConfig.ssid = doc["wifi"]["ssid"].as<String>();
-			wifiConfig.pass = doc["wifi"]["pass"].as<String>();
+			if (!doc["wifi"]["ssid"].isNull()) { wifiConfig.ssid = doc["wifi"]["ssid"].as<String>(); }
+			if (!doc["wifi"]["pass"].isNull()) { wifiConfig.pass = doc["wifi"]["pass"].as<String>(); }
 			_wifi->setConfig(wifiConfig);
 		});
 		_config->deserialize([&](JsonObject doc) {
 			BasicWebServer::Config webServerConfig;
 			_webServer->getConfig(webServerConfig);
-			JsonObject http = doc["http"];
+			JsonObject http = doc["http"].as<JsonObject>();
 			if (!http.isNull()) {
-				webServerConfig.user = http["user"].as<String>();
-				webServerConfig.pass = http["pass"].as<String>();
+				if (!http["user"].isNull()) { webServerConfig.user = http["user"].as<String>(); }
+				if (!http["pass"].isNull()) { webServerConfig.pass = http["pass"].as<String>(); }
 			}
 			_webServer->setConfig(webServerConfig);
 		});
 		_config->deserialize([&](JsonObject doc) {
 			BasicMqtt::Config mqttConfig = _mqtt->getConfig();
-			JsonObject mqtt = doc["mqtt"];
+			JsonObject mqtt = doc["mqtt"].as<JsonObject>();
 			if (!mqtt.isNull()) {
-				mqttConfig.broker_address = mqtt["broker"].as<std::string>();
-				mqttConfig.user = mqtt["user"].as<std::string>();
-				mqttConfig.pass = mqtt["pass"].as<std::string>();
+				if (!mqtt["broker"].isNull()) { mqttConfig.broker_address = mqtt["broker"].as<std::string>(); }
+				if (!mqtt["user"].isNull()) { mqttConfig.user = mqtt["user"].as<std::string>(); }
+				if (!mqtt["pass"].isNull()) { mqttConfig.pass = mqtt["pass"].as<std::string>(); }
 			}
 			_mqtt->setConfig(mqttConfig);
 		});
@@ -213,10 +215,10 @@ void EspBasic::_loop() {
 
 void EspBasic::_publishStats() {
 	if (_mqtt != nullptr) {
-		_mqtt->publish((_mqtt->topicPrefix + "/rssi").c_str(), wifiRssi());
-		_mqtt->publish((_mqtt->topicPrefix + "/cpu_freq").c_str(), cpuFrequency());
+		_mqtt->publish((_mqtt->topicPrefix + "/rssi").c_str(), _wifiRssi());
+		_mqtt->publish((_mqtt->topicPrefix + "/cpu_freq").c_str(), _cpuFrequency());
 #ifdef ARDUINO_ARCH_ESP32
-		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), internalTemperature());
+		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), _internalTemperature());
 #endif
 		JsonDocument doc;
 		String loopStats;
@@ -230,13 +232,13 @@ void EspBasic::_publishStats() {
 			doc.clear();
 		}
 		String heapStats;
-		doc["free"] = heapFree();
+		doc["free"] = _heapFree();
 #ifdef ARDUINO_ARCH_ESP32
-		doc["minFree"] = heapMinFree();
+		doc["minFree"] = _heapMinFree();
 #elif defined(ARDUINO_ARCH_ESP8266)
-		doc["stackFree"] = stackFree();
+		doc["stackFree"] = _stackFree();
 #endif
-		doc["maxAlloc"] = heapMaxAlloc();
+		doc["maxAlloc"] = _heapMaxAlloc();
 		serializeJson(doc, heapStats);
 		_mqtt->publish((_mqtt->topicPrefix + "/heap").c_str(), heapStats);
 	}
