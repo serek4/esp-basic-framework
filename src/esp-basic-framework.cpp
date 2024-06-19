@@ -283,5 +283,14 @@ void EspBasic::_publishStats() {
 		doc["maxAlloc"] = _heapMaxAlloc();
 		serializeJson(doc, heapStats);
 		_mqtt->publish((_mqtt->topicPrefix + "/heap").c_str(), heapStats);
+#if defined(ARDUINO_ARCH_ESP32) && defined(BOARD_HAS_PSRAM)
+		doc.clear();
+		String PsramStats;
+		doc["free"] = ESP.getFreePsram();
+		doc["minFree"] = ESP.getMinFreePsram();
+		doc["maxAlloc"] = ESP.getMaxAllocPsram();
+		serializeJson(doc, PsramStats);
+		_mqtt->publish((_mqtt->topicPrefix + "/psram").c_str(), PsramStats);
+#endif
 	}
 }
