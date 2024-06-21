@@ -8,7 +8,7 @@ void setup() {
 	Serial.println("Setup done!");
 }
 void loop() {
-	if (millis() - loopDelay >= 60000) {
+	if (millis() - loopDelay >= ONE_MINUTE) {
 		loopDelay = millis();
 	}
 	frame.loop();

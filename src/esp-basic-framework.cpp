@@ -7,13 +7,17 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     , _ledON(ONstate)
     , _reboot(rbt_idle)
     , _1minTimer(0)
+    , _1secTimer(0)
     , _prevLoopTime(0)
     , _loopCount(0)
     , _avgLoopBuffer(0)
+    , _avgTemperatureCounter(0)
+    , _avgTemperatureBuffer(0)
     , loopTime(0)
     , avgLoopTime(0)
     , loopCount(0)
     , avgLoopBuffer(0)
+    , avgTemperature(0)
     , _wifi(wifi)
     , _ota(ota)
     , _mqtt(mqtt)
@@ -73,6 +77,16 @@ uint16_t EspBasic::_avgLoopTime() {
 	_loopCount = 0;
 	return avgLoopTime;
 }
+float EspBasic::_avgTemperature() {
+	if (_avgTemperatureCounter > 0) {
+		avgTemperature = static_cast<float>(_avgTemperatureBuffer / _avgTemperatureCounter) / 10.0F;
+		_avgTemperatureCounter = 0;
+		_avgTemperatureBuffer = 0;
+	} else {
+		avgTemperature = _internalTemperature();
+	}
+	return avgTemperature;
+}
 void EspBasic::setupDone() {
 	// loop timers boot + setup() offset
 	_1minTimer = millis();
@@ -80,6 +94,7 @@ void EspBasic::setupDone() {
 }
 
 void EspBasic::_setup() {
+	avgTemperature = _internalTemperature();
 	if (_useLed) {
 		pinMode(_ledPin, OUTPUT);
 		digitalWrite(_ledPin, _ledON);
@@ -235,10 +250,16 @@ void EspBasic::_loop() {
 	if (_NTPclient != nullptr) { _NTPclient->handle(); }
 	if (_ota != nullptr) { _ota->handle(); }
 	_loopTime();
+	if (millis() - _1secTimer >= ONE_SECOND) {
+		_1secTimer = millis();
+		_avgTemperatureCounter++;
+		_avgTemperatureBuffer += static_cast<uint32_t>(_internalTemperature() * 10);
+	}
 	if (millis() - _1minTimer >= ONE_MINUTE) {
 		_1minTimer = millis();
 		now();
 		_avgLoopTime();
+		_avgTemperature();
 		_publishStats();
 	}
 	if (_logger != nullptr) { _logger->handle(); }
@@ -260,7 +281,7 @@ void EspBasic::_publishStats() {
 		_mqtt->publish((_mqtt->topicPrefix + "/rssi").c_str(), _wifiRssi());
 		_mqtt->publish((_mqtt->topicPrefix + "/cpu_freq").c_str(), _cpuFrequency());
 #ifdef ARDUINO_ARCH_ESP32
-		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), _internalTemperature());
+		_mqtt->publish((_mqtt->topicPrefix + "/temperature").c_str(), avgTemperature);
 #endif
 		JsonDocument doc;
 		String loopStats;
