@@ -53,8 +53,10 @@ class EspBasic {
 	u_long _prevLoopTime;
 	uint32_t _loopCount;
 	uint32_t _avgLoopBuffer;
+#ifdef ARDUINO_ARCH_ESP32
 	uint8_t _avgTemperatureCounter;
 	uint32_t _avgTemperatureBuffer;
+#endif
 
 	BasicWiFi* _wifi;
 	BasicOTA* _ota;
@@ -67,7 +69,9 @@ class EspBasic {
 	void _shutdown();
 	uint16_t _loopTime();
 	uint16_t _avgLoopTime();
+#ifdef ARDUINO_ARCH_ESP32
 	float _avgTemperature();
+#endif
 	void _publishStats();
 	// clang-format off
 	int8_t _wifiRssi() { return WIFI_RSSI; }
@@ -106,7 +110,9 @@ class EspBasic {
 	uint16_t avgLoopTime;
 	uint32_t loopCount;
 	uint32_t avgLoopBuffer;
+#ifdef ARDUINO_ARCH_ESP32
 	float avgTemperature;
+#endif
 	// basically delay() with blinking led
 	void blinkLed(u_long onTime, u_long offTime, uint8_t repeat = BLINK_ONCE);
 	// put this as last command in main setup()

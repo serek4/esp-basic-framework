@@ -11,13 +11,17 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     , _prevLoopTime(0)
     , _loopCount(0)
     , _avgLoopBuffer(0)
+#ifdef ARDUINO_ARCH_ESP32
     , _avgTemperatureCounter(0)
     , _avgTemperatureBuffer(0)
+#endif
     , loopTime(0)
     , avgLoopTime(0)
     , loopCount(0)
     , avgLoopBuffer(0)
+#ifdef ARDUINO_ARCH_ESP32
     , avgTemperature(0)
+#endif
     , _wifi(wifi)
     , _ota(ota)
     , _mqtt(mqtt)
@@ -77,6 +81,7 @@ uint16_t EspBasic::_avgLoopTime() {
 	_loopCount = 0;
 	return avgLoopTime;
 }
+#ifdef ARDUINO_ARCH_ESP32
 float EspBasic::_avgTemperature() {
 	if (_avgTemperatureCounter > 0) {
 		avgTemperature = static_cast<float>(_avgTemperatureBuffer / _avgTemperatureCounter) / 10.0F;
@@ -87,6 +92,7 @@ float EspBasic::_avgTemperature() {
 	}
 	return avgTemperature;
 }
+#endif
 void EspBasic::setupDone() {
 	// loop timers boot + setup() offset
 	_1minTimer = millis();
@@ -94,7 +100,9 @@ void EspBasic::setupDone() {
 }
 
 void EspBasic::_setup() {
+#ifdef ARDUINO_ARCH_ESP32
 	avgTemperature = _internalTemperature();
+#endif
 	if (_useLed) {
 		pinMode(_ledPin, OUTPUT);
 		digitalWrite(_ledPin, _ledON);
@@ -252,14 +260,18 @@ void EspBasic::_loop() {
 	_loopTime();
 	if (millis() - _1secTimer >= ONE_SECOND) {
 		_1secTimer = millis();
+#ifdef ARDUINO_ARCH_ESP32
 		_avgTemperatureCounter++;
 		_avgTemperatureBuffer += static_cast<uint32_t>(_internalTemperature() * 10);
+#endif
 	}
 	if (millis() - _1minTimer >= ONE_MINUTE) {
 		_1minTimer = millis();
 		now();
 		_avgLoopTime();
+#ifdef ARDUINO_ARCH_ESP32
 		_avgTemperature();
+#endif
 		_publishStats();
 	}
 	if (_logger != nullptr) { _logger->handle(); }
