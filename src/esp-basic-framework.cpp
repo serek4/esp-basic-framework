@@ -111,53 +111,59 @@ void EspBasic::_setup() {
 	if (_config != nullptr) {
 		_config->addLogger(&BasicLogs::saveLog);
 		_config->setup();
-		_config->serialize([&](JsonObject doc) {
-			BasicWiFi::Config wifiConfig = _wifi->getConfig();
-			doc["wifi"]["ssid"] = wifiConfig.ssid;
-			doc["wifi"]["pass"] = wifiConfig.pass;
-		});
-		_config->serialize([&](JsonObject doc) {
-			BasicWebServer::Config webServerConfig = _webServer->getConfig();
-			JsonObject http = doc["http"].as<JsonObject>();
-			if (http.isNull()) { http = doc["http"].to<JsonObject>(); }
-			http["user"] = webServerConfig.user;
-			http["pass"] = webServerConfig.pass;
-		});
-		_config->serialize([&](JsonObject doc) {
-			BasicMqtt::Config mqttConfig = _mqtt->getConfig();
-			JsonObject mqtt = doc["mqtt"].as<JsonObject>();
-			if (mqtt.isNull()) { mqtt = doc["mqtt"].to<JsonObject>(); }
-			mqtt["broker"] = mqttConfig.broker_address;
-			mqtt["user"] = mqttConfig.user;
-			mqtt["pass"] = mqttConfig.pass;
-		});
-		_config->deserialize([&](JsonObject doc) {
-			BasicWiFi::Config wifiConfig;
-			_wifi->getConfig(wifiConfig);
-			if (!doc["wifi"]["ssid"].isNull()) { wifiConfig.ssid = doc["wifi"]["ssid"].as<String>(); }
-			if (!doc["wifi"]["pass"].isNull()) { wifiConfig.pass = doc["wifi"]["pass"].as<String>(); }
-			_wifi->setConfig(wifiConfig);
-		});
-		_config->deserialize([&](JsonObject doc) {
-			BasicWebServer::Config webServerConfig;
-			_webServer->getConfig(webServerConfig);
-			JsonObject http = doc["http"].as<JsonObject>();
-			if (!http.isNull()) {
-				if (!http["user"].isNull()) { webServerConfig.user = http["user"].as<String>(); }
-				if (!http["pass"].isNull()) { webServerConfig.pass = http["pass"].as<String>(); }
-			}
-			_webServer->setConfig(webServerConfig);
-		});
-		_config->deserialize([&](JsonObject doc) {
-			BasicMqtt::Config mqttConfig = _mqtt->getConfig();
-			JsonObject mqtt = doc["mqtt"].as<JsonObject>();
-			if (!mqtt.isNull()) {
-				if (!mqtt["broker"].isNull()) { mqttConfig.broker_address = mqtt["broker"].as<std::string>(); }
-				if (!mqtt["user"].isNull()) { mqttConfig.user = mqtt["user"].as<std::string>(); }
-				if (!mqtt["pass"].isNull()) { mqttConfig.pass = mqtt["pass"].as<std::string>(); }
-			}
-			_mqtt->setConfig(mqttConfig);
-		});
+		if (_wifi != nullptr) {
+			_config->serialize([&](JsonObject doc) {
+				BasicWiFi::Config wifiConfig = _wifi->getConfig();
+				doc["wifi"]["ssid"] = wifiConfig.ssid;
+				doc["wifi"]["pass"] = wifiConfig.pass;
+			});
+			_config->deserialize([&](JsonObject doc) {
+				BasicWiFi::Config wifiConfig;
+				_wifi->getConfig(wifiConfig);
+				if (!doc["wifi"]["ssid"].isNull()) { wifiConfig.ssid = doc["wifi"]["ssid"].as<String>(); }
+				if (!doc["wifi"]["pass"].isNull()) { wifiConfig.pass = doc["wifi"]["pass"].as<String>(); }
+				_wifi->setConfig(wifiConfig);
+			});
+		}
+		if (_webServer != nullptr) {
+			_config->serialize([&](JsonObject doc) {
+				BasicWebServer::Config webServerConfig = _webServer->getConfig();
+				JsonObject http = doc["http"].as<JsonObject>();
+				if (http.isNull()) { http = doc["http"].to<JsonObject>(); }
+				http["user"] = webServerConfig.user;
+				http["pass"] = webServerConfig.pass;
+			});
+			_config->deserialize([&](JsonObject doc) {
+				BasicWebServer::Config webServerConfig;
+				_webServer->getConfig(webServerConfig);
+				JsonObject http = doc["http"].as<JsonObject>();
+				if (!http.isNull()) {
+					if (!http["user"].isNull()) { webServerConfig.user = http["user"].as<String>(); }
+					if (!http["pass"].isNull()) { webServerConfig.pass = http["pass"].as<String>(); }
+				}
+				_webServer->setConfig(webServerConfig);
+			});
+		}
+		if (_mqtt != nullptr) {
+			_config->serialize([&](JsonObject doc) {
+				BasicMqtt::Config mqttConfig = _mqtt->getConfig();
+				JsonObject mqtt = doc["mqtt"].as<JsonObject>();
+				if (mqtt.isNull()) { mqtt = doc["mqtt"].to<JsonObject>(); }
+				mqtt["broker"] = mqttConfig.broker_address;
+				mqtt["user"] = mqttConfig.user;
+				mqtt["pass"] = mqttConfig.pass;
+			});
+			_config->deserialize([&](JsonObject doc) {
+				BasicMqtt::Config mqttConfig = _mqtt->getConfig();
+				JsonObject mqtt = doc["mqtt"].as<JsonObject>();
+				if (!mqtt.isNull()) {
+					if (!mqtt["broker"].isNull()) { mqttConfig.broker_address = mqtt["broker"].as<std::string>(); }
+					if (!mqtt["user"].isNull()) { mqttConfig.user = mqtt["user"].as<std::string>(); }
+					if (!mqtt["pass"].isNull()) { mqttConfig.pass = mqtt["pass"].as<std::string>(); }
+				}
+				_mqtt->setConfig(mqttConfig);
+			});
+		}
 		_config->load();
 	}
 	if (_webServer != nullptr) {
@@ -173,24 +179,30 @@ void EspBasic::_setup() {
 			request->send(response);
 			_reboot = rbt_requested;
 		});
-		_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
-			if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
-			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
-			request->send(response);
-			_wifi->reconnect();
-		});
-		_webServer->addHttpHandler("/reconnectMqtt", [&](AsyncWebServerRequest* request) {
-			if (_logger != nullptr) { _logger->saveLog("http", "MQTT reconnect requested"); }
-			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
-			request->send(response);
-			_mqtt->reconnect();
-		});
-		_webServer->addHttpHandler("/syncTime", [&](AsyncWebServerRequest* request) {
-			if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
-			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
-			request->send(response);
-			BasicTime::requestNtpTime();
-		});
+		if (_wifi != nullptr) {
+			_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
+				if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
+				AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
+				request->send(response);
+				_wifi->reconnect();
+			});
+		}
+		if (_mqtt != nullptr) {
+			_webServer->addHttpHandler("/reconnectMqtt", [&](AsyncWebServerRequest* request) {
+				if (_logger != nullptr) { _logger->saveLog("http", "MQTT reconnect requested"); }
+				AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
+				request->send(response);
+				_mqtt->reconnect();
+			});
+		}
+		if (_NTPclient != nullptr) {
+			_webServer->addHttpHandler("/syncTime", [&](AsyncWebServerRequest* request) {
+				if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
+				AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
+				request->send(response);
+				BasicTime::requestNtpTime();
+			});
+		}
 	}
 	if (_mqtt != nullptr) {
 		if (_logger != nullptr) { _mqtt->addLogger(&BasicLogs::saveLog); }
@@ -217,17 +229,19 @@ void EspBasic::_setup() {
 					}
 				}
 			}
-			if (mqttCommand[0] == "config") {
-				if (mqttCommand.size() > 1) {
-					if (mqttCommand[1] == "save") {    // to file
-						if (_logger != nullptr) { _logger->saveLog("mqtt", "saving config"); }
-						_config->save();
-						return true;
-					}
-					if (mqttCommand[1] == "load") {    // from file
-						if (_logger != nullptr) { _logger->saveLog("mqtt", "loading config"); }
-						_config->load();
-						return true;
+			if (_config != nullptr) {
+				if (mqttCommand[0] == "config") {
+					if (mqttCommand.size() > 1) {
+						if (mqttCommand[1] == "save") {    // to file
+							if (_logger != nullptr) { _logger->saveLog("mqtt", "saving config"); }
+							_config->save();
+							return true;
+						}
+						if (mqttCommand[1] == "load") {    // from file
+							if (_logger != nullptr) { _logger->saveLog("mqtt", "loading config"); }
+							_config->load();
+							return true;
+						}
 					}
 				}
 			}
