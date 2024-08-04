@@ -23,7 +23,7 @@ framework plugins
 - [ESPAsyncUDP.h](https://github.com/me-no-dev/ESPAsyncUDP)
 - Patched version of [ESPAsyncTCP.h - v1.2.2-2](https://github.com/serek4/ESPAsyncTCP/tree/v1.2.2-2)
 
-### builtin ([esp32 core](https://github.com/espressif/arduino-esp32) - [3.0.3](https://github.com/espressif/arduino-esp32/tree/3.0.3))
+### builtin ([esp32 core](https://github.com/espressif/arduino-esp32) - [3.0.4](https://github.com/espressif/arduino-esp32/tree/3.0.4))
 - WiFi.h
 - Ticker.h
 - LittleFS.h

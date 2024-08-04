@@ -114,14 +114,32 @@ void EspBasic::_setup() {
 		if (_wifi != nullptr) {
 			_config->serialize([&](JsonObject doc) {
 				BasicWiFi::Config wifiConfig = _wifi->getConfig();
-				doc["wifi"]["ssid"] = wifiConfig.ssid;
-				doc["wifi"]["pass"] = wifiConfig.pass;
+				JsonObject wifi = doc["wifi"].as<JsonObject>();
+				if (wifi.isNull()) { wifi = doc["wifi"].to<JsonObject>(); }
+				wifi["ssid"] = wifiConfig.ssid;
+				wifi["pass"] = wifiConfig.pass;
+				if (wifiConfig.ip != NULL_IP_ADDR && wifiConfig.subnet != NULL_IP_ADDR) {
+					wifi["ip"] = wifiConfig.ip.toString();
+					wifi["subnet"] = wifiConfig.subnet.toString();
+					wifi["gateway"] = wifiConfig.gateway.toString();
+					wifi["dns1"] = wifiConfig.dns1.toString();
+					wifi["dns2"] = wifiConfig.dns2.toString();
+				}
 			});
 			_config->deserialize([&](JsonObject doc) {
-				BasicWiFi::Config wifiConfig;
-				_wifi->getConfig(wifiConfig);
-				if (!doc["wifi"]["ssid"].isNull()) { wifiConfig.ssid = doc["wifi"]["ssid"].as<String>(); }
-				if (!doc["wifi"]["pass"].isNull()) { wifiConfig.pass = doc["wifi"]["pass"].as<String>(); }
+				BasicWiFi::Config wifiConfig = _wifi->getConfig();
+				JsonObject wifi = doc["wifi"].as<JsonObject>();
+				if (!wifi.isNull()) {
+					if (!wifi["ssid"].isNull()) { wifiConfig.ssid = wifi["ssid"].as<String>(); }
+					if (!wifi["pass"].isNull()) { wifiConfig.pass = wifi["pass"].as<String>(); }
+					if (!wifi["ip"].isNull() && !wifi["subnet"].isNull()) {
+						wifiConfig.ip.fromString(wifi["ip"].as<const char*>());
+						wifiConfig.subnet.fromString(wifi["subnet"].as<const char*>());
+						if (!wifi["gateway"].isNull()) { wifiConfig.gateway.fromString(wifi["gateway"].as<const char*>()); }
+						if (!wifi["dns1"].isNull()) { wifiConfig.dns1.fromString(wifi["dns1"].as<const char*>()); }
+						if (!wifi["dns2"].isNull()) { wifiConfig.dns2.fromString(wifi["dns2"].as<const char*>()); }
+					}
+				}
 				_wifi->setConfig(wifiConfig);
 			});
 		}
