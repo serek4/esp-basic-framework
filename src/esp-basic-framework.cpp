@@ -272,9 +272,11 @@ void EspBasic::_setup() {
 			if (_ota != nullptr) { _ota->begin(); }
 			if (_mqtt != nullptr) { _mqtt->connect(); }
 			if (_webServer != nullptr) { _webServer->begin(); }
+			if (_NTPclient != nullptr) { _NTPclient->setNetworkReady(true); }
 		});
 		_wifi->onDisconnected([&](DISCONNECTED_HANDLER_ARGS) {
 			if (_mqtt != nullptr) { _mqtt->disconnect(); }
+			if (_NTPclient != nullptr) { _NTPclient->setNetworkReady(false); }
 		});
 	}
 	if (_ota != nullptr) {
