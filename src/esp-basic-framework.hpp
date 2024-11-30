@@ -48,6 +48,7 @@ class EspBasic {
 	bool _ledON;
 	bool _useLed;
 	uint8_t _reboot;
+	bool _format;
 	u_long _1minTimer;
 	u_long _1secTimer;
 	u_long _prevLoopTime;

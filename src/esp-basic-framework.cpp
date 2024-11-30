@@ -6,6 +6,7 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     , _ledPin(ledPin)
     , _ledON(ONstate)
     , _reboot(rbt_idle)
+    , _format(false)
     , _1minTimer(0)
     , _1secTimer(0)
     , _prevLoopTime(0)
@@ -197,6 +198,12 @@ void EspBasic::_setup() {
 			request->send(response);
 			_reboot = rbt_requested;
 		});
+		_webServer->addHttpHandler("/format", [&](AsyncWebServerRequest* request) {
+			if (_logger != nullptr) { _logger->saveLog("http", "format requested"); }
+			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "format command sent");
+			request->send(response);
+			_format = true;
+		});
 		if (_wifi != nullptr) {
 			_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
 				if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
@@ -319,6 +326,15 @@ void EspBasic::_loop() {
 			rebootTimer = millis();
 			ESP.restart();
 		}
+	}
+	if (_format) {
+		_format = false;
+		Serial.println("fs_end");
+		FILE_SYSTEM.end();
+		Serial.println("fs_format");
+		FILE_SYSTEM.format();
+		Serial.println("fs_begin");
+		FILE_SYSTEM.begin();
 	}
 }
 
