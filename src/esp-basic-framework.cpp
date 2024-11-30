@@ -7,6 +7,7 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     , _ledON(ONstate)
     , _reboot(rbt_idle)
     , _format(false)
+    , _ping(false)
     , _1minTimer(0)
     , _1secTimer(0)
     , _prevLoopTime(0)
@@ -232,7 +233,13 @@ void EspBasic::_setup() {
 	if (_mqtt != nullptr) {
 		if (_logger != nullptr) { _mqtt->addLogger(&BasicLogs::saveLog); }
 		_mqtt->onConnect([&](bool sessionPresent) {
+			_mqtt->subscribe((_mqtt->topicPrefix + "/ping").c_str());
 			_publishStats();
+		});
+		_mqtt->onMessage([&](const char* topic, const char* payload) {
+			if (strcmp(topic, (_mqtt->topicPrefix + "/ping").c_str()) == 0) {
+				_ping = true;
+			}
 		});
 		_mqtt->commands([&](BasicMqtt::Command mqttCommand) {
 			if (mqttCommand[0] == "restart" && mqttCommand.size() == 1) {
@@ -335,6 +342,12 @@ void EspBasic::_loop() {
 		FILE_SYSTEM.format();
 		Serial.println("fs_begin");
 		FILE_SYSTEM.begin();
+	}
+	if (_ping) {
+		_ping = false;
+		if (_mqtt != nullptr) {
+			_mqtt->publish((_mqtt->topicPrefix + "/pong").c_str(), millis() / 1000);
+		}
 	}
 }
 

@@ -49,6 +49,7 @@ class EspBasic {
 	bool _useLed;
 	uint8_t _reboot;
 	bool _format;
+	bool _ping;
 	u_long _1minTimer;
 	u_long _1secTimer;
 	u_long _prevLoopTime;
@@ -98,7 +99,7 @@ class EspBasic {
 		rbt_pending,
 		rbt_forced
 	};
-	
+
 	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
 	         BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config,
 	         uint8_t ledPin, bool ONstate, bool useLed = true);
