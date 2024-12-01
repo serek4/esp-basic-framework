@@ -8,6 +8,9 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     , _reboot(rbt_idle)
     , _format(false)
     , _ping(false)
+    , _pingWatchdog(false)
+    , _pingWatchdogTimeout(PING_WATCHDOG_TIMEOUT)
+    , _pingTimer(0)
     , _1minTimer(0)
     , _1secTimer(0)
     , _prevLoopTime(0)
@@ -99,6 +102,11 @@ void EspBasic::setupDone() {
 	// loop timers boot + setup() offset
 	_1minTimer = millis();
 	_prevLoopTime = micros();    // save setup end time as first loop start
+}
+
+void EspBasic::pingWatchdog(bool enable, u_long timeout) {
+	_pingWatchdog = enable;
+	_pingWatchdogTimeout = timeout;
 }
 
 void EspBasic::_setup() {
@@ -344,10 +352,15 @@ void EspBasic::_loop() {
 		FILE_SYSTEM.begin();
 	}
 	if (_ping) {
+		_pingTimer = millis();
 		_ping = false;
 		if (_mqtt != nullptr) {
 			_mqtt->publish((_mqtt->topicPrefix + "/pong").c_str(), millis() / 1000);
 		}
+	} else if (_pingWatchdog && millis() - _pingTimer >= _pingWatchdogTimeout) {
+		if (_logger != nullptr) { _logger->saveLog(BasicLogs::_error_, "ping watchdog timeout"); }
+		_pingWatchdog = false;
+		_reboot = rbt_requested;
 	}
 }
 

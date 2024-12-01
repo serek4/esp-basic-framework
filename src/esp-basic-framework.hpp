@@ -30,6 +30,7 @@
 #define REBOOT_DELAY 100
 #define ONE_MINUTE 60000
 #define ONE_SECOND 1000
+#define PING_WATCHDOG_TIMEOUT 30 * ONE_MINUTE
 #define HEAP_FREE ESP.getFreeHeap()
 #define WIFI_RSSI WiFi.RSSI()
 #ifdef ARDUINO_ARCH_ESP32
@@ -50,6 +51,9 @@ class EspBasic {
 	uint8_t _reboot;
 	bool _format;
 	bool _ping;
+	bool _pingWatchdog;
+	u_long _pingWatchdogTimeout;
+	u_long _pingTimer;
 	u_long _1minTimer;
 	u_long _1secTimer;
 	u_long _prevLoopTime;
@@ -119,4 +123,5 @@ class EspBasic {
 	void blinkLed(u_long onTime, u_long offTime, uint8_t repeat = BLINK_ONCE);
 	// put this as last command in main setup()
 	void setupDone();
+	void pingWatchdog(bool enable, u_long timeout = PING_WATCHDOG_TIMEOUT);
 };
