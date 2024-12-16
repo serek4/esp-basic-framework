@@ -297,7 +297,9 @@ void EspBasic::_setup() {
 			if (_NTPclient != nullptr) { _NTPclient->setNetworkReady(true); }
 		});
 		_wifi->onDisconnected([&](DISCONNECTED_HANDLER_ARGS) {
+			if (_ota != nullptr) { _ota->end(); }
 			if (_mqtt != nullptr) { _mqtt->disconnect(); }
+			if (_webServer != nullptr) { _webServer->end(); }
 			if (_NTPclient != nullptr) { _NTPclient->setNetworkReady(false); }
 		});
 	}
