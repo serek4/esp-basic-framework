@@ -5,6 +5,7 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     : _useLed(useLed)
     , _ledPin(ledPin)
     , _ledON(ONstate)
+    , _httpCommands({{"restart", h_cmd_restart}, {"reboot", h_cmd_reboot}, {"format", h_cmd_format}})
     , _reboot(rbt_idle)
     , _format(false)
     , _ping(false)
@@ -56,6 +57,10 @@ void EspBasic::blinkLed(u_long onTime, u_long offTime, uint8_t repeat) {
 		digitalWrite(_ledPin, !_ledON);
 		delay(offTime);
 	}
+}
+
+void EspBasic::_addHttpCommand(std::string command, uint8_t cmdCode) {
+	_httpCommands.insert({command, cmdCode});
 }
 
 void EspBasic::_shutdown() {
@@ -195,50 +200,59 @@ void EspBasic::_setup() {
 		_config->load();
 	}
 	if (_webServer != nullptr) {
-		_webServer->addHttpHandler("/restart", [&](AsyncWebServerRequest* request) {
-			if (_logger != nullptr) { _logger->saveLog("http", "restart requested"); }
-			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "restart command sent");
-			request->send(response);
-			_reboot = rbt_forced;
+		_webServer->addHttpHandler("/commands", [&](AsyncWebServerRequest* request) {
+			String message = "Received command: ";
+			String command = "";
+			uint16_t responseCode = 0;
+			if (request->hasArg("cmd")) {
+				command = request->arg("cmd");
+				if (_httpCommands.count(command.c_str()) == 0) {
+					message += (String) "invalid " + "(" + request->arg("cmd") + ")\n";
+					message += "Available commands: ";
+					for (auto& cmd : _httpCommands) {
+						message += String(cmd.first.c_str()) + " ";
+					}
+					responseCode = 400;
+				} else {
+					message += command + "\n";
+					responseCode = 200;
+				}
+			} else {
+				message = "No 'cmd=<command>' arg found!\n";
+				responseCode = 400;
+			}
+			request->send(responseCode, "text/plain", message);
+			if (_httpCommands.count(command.c_str()) == 0) { return; }
+			switch (_httpCommands.at(command.c_str())) {
+				case h_cmd_reboot:
+					if (_logger != nullptr) { _logger->saveLog("http", "reboot requested"); }
+					_reboot = rbt_requested;
+					break;
+				case h_cmd_restart:
+					if (_logger != nullptr) { _logger->saveLog("http", "restart requested"); }
+					_reboot = rbt_forced;
+					break;
+				case h_cmd_format:
+					if (_logger != nullptr) { _logger->saveLog("http", "format requested"); }
+					_format = true;
+					break;
+				case h_cmd_reconnect_wifi:
+					if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
+					if (_wifi != nullptr) { _wifi->reconnect(); }
+					break;
+				case h_cmd_reconnect_mqtt:
+					if (_logger != nullptr) { _logger->saveLog("http", "MQTT reconnect requested"); }
+					if (_mqtt != nullptr) { _mqtt->reconnect(); }
+					break;
+				case h_cmd_sync_time:
+					if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
+					if (_NTPclient != nullptr) { BasicTime::requestNtpTime(); }
+					break;
+			}
 		});
-		_webServer->addHttpHandler("/reboot", [&](AsyncWebServerRequest* request) {
-			if (_logger != nullptr) { _logger->saveLog("http", "reboot requested"); }
-			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reboot command sent");
-			request->send(response);
-			_reboot = rbt_requested;
-		});
-		_webServer->addHttpHandler("/format", [&](AsyncWebServerRequest* request) {
-			if (_logger != nullptr) { _logger->saveLog("http", "format requested"); }
-			AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "format command sent");
-			request->send(response);
-			_format = true;
-		});
-		if (_wifi != nullptr) {
-			_webServer->addHttpHandler("/reconnectWiFi", [&](AsyncWebServerRequest* request) {
-				if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
-				AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect WiFi command sent");
-				request->send(response);
-				_wifi->reconnect();
-			});
-		}
-		if (_mqtt != nullptr) {
-			_webServer->addHttpHandler("/reconnectMqtt", [&](AsyncWebServerRequest* request) {
-				if (_logger != nullptr) { _logger->saveLog("http", "MQTT reconnect requested"); }
-				AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "reconnect mqtt command sent");
-				request->send(response);
-				_mqtt->reconnect();
-			});
-		}
-		if (_NTPclient != nullptr) {
-			_webServer->addHttpHandler("/syncTime", [&](AsyncWebServerRequest* request) {
-				if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
-				AsyncWebServerResponse* response = request->beginResponse(200, "text/plain", "NTP sync request sent");
-				request->send(response);
-				BasicTime::requestNtpTime();
-			});
-		}
 	}
 	if (_mqtt != nullptr) {
+		if (_webServer != nullptr) { _addHttpCommand("reconnectMqtt", h_cmd_reconnect_mqtt); }
 		if (_logger != nullptr) { _mqtt->addLogger(&BasicLogs::saveLog); }
 		_mqtt->onConnect([&](bool sessionPresent) {
 			_mqtt->subscribe((_mqtt->topicPrefix + "/ping").c_str());
@@ -289,6 +303,7 @@ void EspBasic::_setup() {
 		});
 	}
 	if (_wifi != nullptr) {
+		if (_webServer != nullptr) { _addHttpCommand("reconnectWiFi", h_cmd_reconnect_wifi); }
 		if (_logger != nullptr) { _wifi->addLogger(&BasicLogs::saveLog); }
 		_wifi->onGotIP([&](GOT_IP_HANDLER_ARGS) {
 			if (_ota != nullptr) { _ota->begin(); }
@@ -308,6 +323,7 @@ void EspBasic::_setup() {
 		_ota->setup();
 	}
 	if (_NTPclient != nullptr) {
+		if (_webServer != nullptr) { _addHttpCommand("syncTime", h_cmd_sync_time); }
 		if (_logger != nullptr) { _NTPclient->addLogger(&BasicLogs::saveLog); }
 		_NTPclient->setup();
 	}

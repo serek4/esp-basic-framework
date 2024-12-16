@@ -10,6 +10,7 @@
 #include <esp-basic-web-server.hpp>
 #include <esp-basic-wifi.hpp>
 #include <list>
+#include <unordered_map>
 
 // #define BASIC_FRAME_DEBUG
 // printing macros
@@ -43,11 +44,14 @@
 #define HEAP_MAX_ALLOC ESP.getMaxFreeBlockSize()
 #endif
 
+using HttpCommands = std::unordered_map<std::string, uint8_t>;
+
 class EspBasic {
   private:
 	uint8_t _ledPin;
 	bool _ledON;
 	bool _useLed;
+	HttpCommands _httpCommands;
 	uint8_t _reboot;
 	bool _format;
 	bool _ping;
@@ -73,6 +77,7 @@ class EspBasic {
 	BasicConfig* _config;
 
 	void _shutdown();
+	void _addHttpCommand(std::string command, uint8_t cmdCode);
 	uint16_t _loopTime();
 	uint16_t _avgLoopTime();
 #ifdef ARDUINO_ARCH_ESP32
@@ -102,6 +107,14 @@ class EspBasic {
 		rbt_requested,
 		rbt_pending,
 		rbt_forced
+	};
+	enum HttpCommand {
+		h_cmd_reboot,
+		h_cmd_restart,
+		h_cmd_format,
+		h_cmd_reconnect_wifi,
+		h_cmd_reconnect_mqtt,
+		h_cmd_sync_time
 	};
 
 	EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
