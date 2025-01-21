@@ -111,6 +111,7 @@ class EspBasic {
 	enum HttpCommand {
 		h_cmd_reboot,
 		h_cmd_restart,
+		h_cmd_shutdown,
 		h_cmd_format,
 		h_cmd_reconnect_wifi,
 		h_cmd_reconnect_mqtt,

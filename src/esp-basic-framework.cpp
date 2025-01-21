@@ -5,7 +5,7 @@ EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServ
     : _useLed(useLed)
     , _ledPin(ledPin)
     , _ledON(ONstate)
-    , _httpCommands({{"restart", h_cmd_restart}, {"reboot", h_cmd_reboot}, {"format", h_cmd_format}})
+    , _httpCommands({{"reboot", h_cmd_reboot}, {"restart", h_cmd_restart}, {"shutdown", h_cmd_shutdown}, {"format", h_cmd_format}})
     , _reboot(rbt_idle)
     , _format(false)
     , _ping(false)
@@ -231,6 +231,14 @@ void EspBasic::_setup() {
 				case h_cmd_restart:
 					if (_logger != nullptr) { _logger->saveLog("http", "restart requested"); }
 					_reboot = rbt_forced;
+					break;
+				case h_cmd_shutdown:
+					if (_logger != nullptr) {
+						_logger->saveLog("http", "shutdown requested");
+						_logger->handle();
+					}
+					delay(100);
+					ESP.restart();
 					break;
 				case h_cmd_format:
 					if (_logger != nullptr) { _logger->saveLog("http", "format requested"); }
