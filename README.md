@@ -23,7 +23,7 @@ framework plugins
 - [ESPAsyncUDP.h](https://github.com/me-no-dev/ESPAsyncUDP)
 - Patched version of [ESPAsyncTCP.h - v1.2.2-2](https://github.com/serek4/ESPAsyncTCP/tree/v1.2.2-2)
 
-### builtin ([esp32 core](https://github.com/espressif/arduino-esp32) - [3.0.4](https://github.com/espressif/arduino-esp32/tree/3.0.4))
+### builtin ([esp32 core](https://github.com/espressif/arduino-esp32) - [3.1.3](https://github.com/espressif/arduino-esp32/tree/3.1.3))
 - WiFi.h
 - Ticker.h
 - LittleFS.h
@@ -38,5 +38,5 @@ framework plugins
 - [ESPAsyncWebServer.h - v1.2.4-4](https://github.com/serek4/ESPAsyncWebServer/tree/v1.2.4-4)
 - [TimeLib.h](https://github.com/PaulStoffregen/Time)
 - [espMqttClient - 1.7.0](https://github.com/bertmelis/espMqttClient)
-- [ArduinoJson.h - 7.1.0](https://github.com/bblanchon/ArduinoJson/tree/v7.1.0)
+- [ArduinoJson.h - 7.3.1](https://github.com/bblanchon/ArduinoJson/tree/v7.3.1)
 

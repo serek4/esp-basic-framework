@@ -15,7 +15,7 @@ void handleWiFiConnected(CONNECTED_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onConnected");
 }
 void handleWiFiGotIP(GOT_IP_HANDLER_ARGS) {
-	Serial.println("User handler for WIFI onGotIP");
+	Serial.println("User handler for WIFI onGotIP " + (WiFi.localIP()).toString());
 }
 void handleWiFiDisconnected(DISCONNECTED_HANDLER_ARGS) {
 	Serial.println("User handler for WIFI onDisconnected");
