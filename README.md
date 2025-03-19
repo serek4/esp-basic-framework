@@ -32,10 +32,10 @@ framework plugins
 - MD5Builder.h
 
 ### extra esp32
-- Patched version of [AsyncTCP.h - v1.1.1-1](https://github.com/serek4/AsyncTCP/tree/v1.1.1-1)
+- Patched version of [AsyncTCP.h - v1.1.1-3](https://github.com/serek4/AsyncTCP/tree/v1.1.1-3)
 
 ### other
-- [ESPAsyncWebServer.h - v1.2.4-3](https://github.com/serek4/ESPAsyncWebServer/tree/v1.2.4-3)
+- [ESPAsyncWebServer.h - v1.2.4-4](https://github.com/serek4/ESPAsyncWebServer/tree/v1.2.4-4)
 - [TimeLib.h](https://github.com/PaulStoffregen/Time)
 - [espMqttClient - 1.7.0](https://github.com/bertmelis/espMqttClient)
 - [ArduinoJson.h - 7.1.0](https://github.com/bblanchon/ArduinoJson/tree/v7.1.0)

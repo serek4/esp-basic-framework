@@ -339,6 +339,7 @@ void EspBasic::_setup() {
 void EspBasic::_loop() {
 	if (_NTPclient != nullptr) { _NTPclient->handle(); }
 	if (_ota != nullptr) { _ota->handle(); }
+	if (_webServer != nullptr) { _webServer->handle(); }
 	_loopTime();
 	if (millis() - _1secTimer >= ONE_SECOND) {
 		_1secTimer = millis();
