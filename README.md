@@ -36,7 +36,7 @@ framework plugins
 
 ### other
 - [ESPAsyncWebServer.h - v1.2.4-4](https://github.com/serek4/ESPAsyncWebServer/tree/v1.2.4-4)
-- [TimeLib.h](https://github.com/PaulStoffregen/Time)
+- modified [TimeLib.h](https://github.com/serek4/Time)
 - [espMqttClient - 1.7.0](https://github.com/bertmelis/espMqttClient)
 - [ArduinoJson.h - 7.3.1](https://github.com/bblanchon/ArduinoJson/tree/v7.3.1)
 

@@ -261,7 +261,7 @@ void EspBasic::_setup() {
 					break;
 				case h_cmd_sync_time:
 					if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
-					if (_NTPclient != nullptr) { BasicTime::requestNtpTime(); }
+					if (_NTPclient != nullptr) { _NTPclient->requestNtpTime(); }
 					break;
 			}
 		});

@@ -66,8 +66,8 @@ void Framework::setup() {
 	wifi.setWaitingFunction(blink);
 	wifi.setup();
 	if (wifi.waitForConnection() == BasicWiFi::wifi_got_ip) {
-		NTPclient.waitForNTP();
 		mqtt.waitForConnection();
+		NTPclient.waitForNTP();
 	}
 	EspBasic::setupDone();    //* here or in main setup() end
 }
