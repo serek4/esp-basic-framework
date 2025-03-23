@@ -64,10 +64,17 @@ void EspBasic::_addHttpCommand(std::string command, uint8_t cmdCode) {
 }
 
 void EspBasic::_shutdown() {
-	_mqtt->disconnect();
-	while (_mqtt->connected()) { delay(1); }
-	_wifi->disconnect();
-	while (WiFi.isConnected()) { delay(1); }
+	if (_ota != nullptr) { _ota->end(); }
+	if (_webServer != nullptr) { _webServer->end(); }
+	if (_NTPclient != nullptr) { _NTPclient->setNetworkReady(false); }
+	if (_mqtt != nullptr) {
+		_mqtt->disconnect();
+		while (_mqtt->connected()) { delay(1); }
+	}
+	if (_wifi != nullptr) {
+		_wifi->disconnect();
+		while (WiFi.isConnected()) { delay(1); }
+	}
 	if (_logger != nullptr) { _logger->saveLog(BasicLogs::_info_, "restart"); }
 }
 
@@ -338,7 +345,9 @@ void EspBasic::_setup() {
 }
 void EspBasic::_loop() {
 	if (_NTPclient != nullptr) { _NTPclient->handle(); }
-	if (_ota != nullptr) { _ota->handle(); }
+	if (_ota != nullptr) {
+		if (_ota->handle(false)) { _reboot = rbt_requested; }
+	}
 	if (_webServer != nullptr) { _webServer->handle(); }
 	_loopTime();
 	if (millis() - _1secTimer >= ONE_SECOND) {
