@@ -50,6 +50,25 @@ bool handleMqttCommands(BasicMqtt::Command mqttCommand) {
 }
 
 void Framework::setup() {
+
+	// add loggers to framework
+	addLogger(fileLogger);
+	addLogger(serialLogger);
+
+	// add loggers to framework plugins
+	frameConfig.addLogger(fileLogger);
+	frameConfig.addLogger(serialLogger);
+	wifi.addLogger(fileLogger);
+	wifi.addLogger(serialLogger, _debug_);
+	webServer.addLogger(fileLogger);
+	webServer.addLogger(serialLogger);
+	ota.addLogger(fileLogger);
+	ota.addLogger(serialLogger);
+	mqtt.addLogger(fileLogger);
+	mqtt.addLogger(serialLogger);
+	NTPclient.addLogger(fileLogger);
+	NTPclient.addLogger(serialLogger);
+
 	EspBasic::_setup();
 	webServer.setup();
 	mqtt.onConnect(handleMqttConnect);

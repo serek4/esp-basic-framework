@@ -46,7 +46,7 @@
 
 using HttpCommands = std::unordered_map<std::string, uint8_t>;
 
-class EspBasic {
+class EspBasic : public BasicPlugin {
   private:
 	uint8_t _ledPin;
 	bool _ledON;
@@ -139,3 +139,6 @@ class EspBasic {
 	void setupDone();
 	void pingWatchdog(bool enable, u_long timeout = PING_WATCHDOG_TIMEOUT);
 };
+
+extern void fileLogger(String logLevel, String origin, String msg);
+extern void serialLogger(String logLevel, String origin, String msg);

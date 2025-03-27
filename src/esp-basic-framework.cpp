@@ -2,7 +2,8 @@
 EspBasic::EspBasic(BasicWiFi* wifi, BasicOTA* ota, BasicMqtt* mqtt, BasicWebServer* webServer,
                    BasicTime* NTPclient, BasicLogs* logger, BasicConfig* config,
                    uint8_t ledPin, bool ONstate, bool useLed)
-    : _useLed(useLed)
+    : BasicPlugin("frame")
+    , _useLed(useLed)
     , _ledPin(ledPin)
     , _ledON(ONstate)
     , _httpCommands({{"reboot", h_cmd_reboot}, {"restart", h_cmd_restart}, {"shutdown", h_cmd_shutdown}, {"format", h_cmd_format}})
@@ -75,7 +76,7 @@ void EspBasic::_shutdown() {
 		_wifi->disconnect();
 		while (WiFi.isConnected()) { delay(1); }
 	}
-	if (_logger != nullptr) { _logger->saveLog(BasicLogs::_info_, "restart"); }
+	_log(_info_, "restart");
 }
 
 uint16_t EspBasic::_loopTime() {
@@ -121,6 +122,15 @@ void EspBasic::pingWatchdog(bool enable, u_long timeout) {
 	_pingWatchdogTimeout = timeout;
 }
 
+void fileLogger(String logLevel, String origin, String msg) {
+	BasicLogs::saveLog(logLevel, origin, msg);
+}
+
+void serialLogger(String logLevel, String origin, String msg) {
+	String logMessage = String(millis()) + ", " + logLevel + ", " + origin + ", " + msg;
+	Serial.println(logMessage);
+}
+
 void EspBasic::_setup() {
 #ifdef ARDUINO_ARCH_ESP32
 	avgTemperature = _internalTemperature();
@@ -131,7 +141,6 @@ void EspBasic::_setup() {
 	}
 	filesystem.setup(true);
 	if (_config != nullptr) {
-		_config->addLogger(&BasicLogs::saveLog);
 		_config->setup();
 		if (_wifi != nullptr) {
 			_config->serialize([&](JsonObject doc) {
@@ -232,35 +241,33 @@ void EspBasic::_setup() {
 			if (_httpCommands.count(command.c_str()) == 0) { return; }
 			switch (_httpCommands.at(command.c_str())) {
 				case h_cmd_reboot:
-					if (_logger != nullptr) { _logger->saveLog("http", "reboot requested"); }
+					_log(_info_, "http", "reboot requested");
 					_reboot = rbt_requested;
 					break;
 				case h_cmd_restart:
-					if (_logger != nullptr) { _logger->saveLog("http", "restart requested"); }
+					_log(_info_, "http", "restart requested");
 					_reboot = rbt_forced;
 					break;
 				case h_cmd_shutdown:
-					if (_logger != nullptr) {
-						_logger->saveLog("http", "shutdown requested");
-						_logger->handle();
-					}
+					_log(_info_, "http", "shutdown requested");
+					if (_logger != nullptr) { _logger->handle(); }
 					delay(100);
 					ESP.restart();
 					break;
 				case h_cmd_format:
-					if (_logger != nullptr) { _logger->saveLog("http", "format requested"); }
+					_log(_info_, "http", "format requested");
 					_format = true;
 					break;
 				case h_cmd_reconnect_wifi:
-					if (_logger != nullptr) { _logger->saveLog("http", "WiFi reconnect requested"); }
+					_log(_info_, "http", "WiFi reconnect requested");
 					if (_wifi != nullptr) { _wifi->reconnect(); }
 					break;
 				case h_cmd_reconnect_mqtt:
-					if (_logger != nullptr) { _logger->saveLog("http", "MQTT reconnect requested"); }
+					_log(_info_, "http", "MQTT reconnect requested");
 					if (_mqtt != nullptr) { _mqtt->reconnect(); }
 					break;
 				case h_cmd_sync_time:
-					if (_logger != nullptr) { _logger->saveLog("http", "NTP sync requested"); }
+					_log(_info_, "http", "NTP sync requested");
 					if (_NTPclient != nullptr) { _NTPclient->requestNtpTime(); }
 					break;
 			}
@@ -268,7 +275,8 @@ void EspBasic::_setup() {
 	}
 	if (_mqtt != nullptr) {
 		if (_webServer != nullptr) { _addHttpCommand("reconnectMqtt", h_cmd_reconnect_mqtt); }
-		if (_logger != nullptr) { _mqtt->addLogger(&BasicLogs::saveLog); }
+		if (_logger != nullptr) {
+		}
 		_mqtt->onConnect([&](bool sessionPresent) {
 			_mqtt->subscribe((_mqtt->topicPrefix + "/ping").c_str());
 			_publishStats();
@@ -280,19 +288,19 @@ void EspBasic::_setup() {
 		});
 		_mqtt->commands([&](BasicMqtt::Command mqttCommand) {
 			if (mqttCommand[0] == "restart" && mqttCommand.size() == 1) {
-				if (_logger != nullptr) { _logger->saveLog("mqtt", "restart requested"); }
+				_log(_info_, "mqtt", "restart requested");
 				_reboot = rbt_forced;
 				return true;
 			}
 			if (mqttCommand[0] == "reboot" && mqttCommand.size() == 1) {
-				if (_logger != nullptr) { _logger->saveLog("mqtt", "reboot requested"); }
+				_log(_info_, "mqtt", "reboot requested");
 				_reboot = rbt_requested;
 				return true;
 			}
 			if (mqttCommand[0] == "wifi") {
 				if (mqttCommand.size() > 1) {
 					if (mqttCommand[1] == "reconnect") {
-						if (_logger != nullptr) { _logger->saveLog("mqtt", "WiFi reconnect requested"); }
+						_log(_info_, "mqtt", "WiFi reconnect requested");
 						_wifi->reconnect();
 						return true;
 					}
@@ -302,12 +310,12 @@ void EspBasic::_setup() {
 				if (mqttCommand[0] == "config") {
 					if (mqttCommand.size() > 1) {
 						if (mqttCommand[1] == "save") {    // to file
-							if (_logger != nullptr) { _logger->saveLog("mqtt", "saving config"); }
+							_log(_info_, "mqtt", "saving config");
 							_config->save();
 							return true;
 						}
 						if (mqttCommand[1] == "load") {    // from file
-							if (_logger != nullptr) { _logger->saveLog("mqtt", "loading config"); }
+							_log(_info_, "mqtt", "loading config");
 							_config->load();
 							return true;
 						}
@@ -319,7 +327,6 @@ void EspBasic::_setup() {
 	}
 	if (_wifi != nullptr) {
 		if (_webServer != nullptr) { _addHttpCommand("reconnectWiFi", h_cmd_reconnect_wifi); }
-		if (_logger != nullptr) { _wifi->addLogger(&BasicLogs::saveLog); }
 		_wifi->onGotIP([&](GOT_IP_HANDLER_ARGS) {
 			if (_ota != nullptr) { _ota->begin(); }
 			if (_mqtt != nullptr) { _mqtt->connect(); }
@@ -334,12 +341,10 @@ void EspBasic::_setup() {
 		});
 	}
 	if (_ota != nullptr) {
-		if (_logger != nullptr) { _ota->addLogger(&BasicLogs::saveLog); }
 		_ota->setup();
 	}
 	if (_NTPclient != nullptr) {
 		if (_webServer != nullptr) { _addHttpCommand("syncTime", h_cmd_sync_time); }
-		if (_logger != nullptr) { _NTPclient->addLogger(&BasicLogs::saveLog); }
 		_NTPclient->setup();
 	}
 }
@@ -380,12 +385,10 @@ void EspBasic::_loop() {
 	}
 	if (_format) {
 		_format = false;
-		Serial.println("fs_end");
 		FILE_SYSTEM.end();
-		Serial.println("fs_format");
 		FILE_SYSTEM.format();
-		Serial.println("fs_begin");
 		FILE_SYSTEM.begin();
+		_log(_warning_, "file system formatted");
 	}
 	if (_ping) {
 		_pingTimer = millis();
@@ -394,7 +397,7 @@ void EspBasic::_loop() {
 			_mqtt->publish((_mqtt->topicPrefix + "/pong").c_str(), millis() / 1000);
 		}
 	} else if (_pingWatchdog && millis() - _pingTimer >= _pingWatchdogTimeout) {
-		if (_logger != nullptr) { _logger->saveLog(BasicLogs::_error_, "ping watchdog timeout"); }
+		_log(_error_, "ping watchdog timeout");
 		_pingWatchdog = false;
 		_reboot = rbt_requested;
 	}
